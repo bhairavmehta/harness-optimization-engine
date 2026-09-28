@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harness Optimization Engine · Capgemini</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232B0A3D'/><path d='M16 6c4 5 9 7 9 12a5 5 0 0 1-9 3 5 5 0 0 1-9-3c0-5 5-7 9-12z' fill='%2312ABDB'/></svg>">
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav" aria-label="Main">
+      <div class="brand">
+        <div class="wordmark">
+          <svg class="spade" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3c5 6 11 9 11 15a6 6 0 0 1-11 3.5A6 6 0 0 1 5 18C5 12 11 9 16 3z" fill="#12ABDB"/><path d="M14 22h4l1.5 7h-7z" fill="#12ABDB"/></svg>
+          Capgemini
+        </div>
+        <div class="product">Harness Optimization Engine</div>
+      </div>
+      <ul id="nav"></ul>
+      <div class="nav-foot">
+        <div>Verizon · AI Agent Platform</div>
+        <div id="llm-state" class="small"></div>
+        <button id="reset" title="Re-seed all demo data">Reset demo data</button>
+      </div>
+    </nav>
+    <div>
+      <header class="top">
+        <div class="crumbs" id="crumbs"></div>
+        <div class="agent-pick">
+          <label for="agent">Agent</label>
+          <select id="agent"></select>
+          <span class="env-tag">Production</span>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"><div class="loading">Starting the engine…</div></main>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
