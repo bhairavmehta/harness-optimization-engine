@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import hood, state as st
+from . import hood, journey, state as st
 from .engine import env, harness as H, jobs, llm, vcs
 
 app = FastAPI(title="Harness Optimization Engine", version="1.0")
@@ -358,6 +358,21 @@ def hood_view(section: str, aid: str):
 async def hood_verify(aid: str, req: Request):
     b = await body(req)
     return locked(hood.verify_hash, aid, b.get("hash"))
+
+
+# ------------------------------------------------------------------ trace journey
+@app.get("/api/journey/search/{aid}")
+def journey_search(aid: str, q: str = ""):
+    return locked(journey.search, aid, q)
+
+
+@app.get("/api/journey/{tid}")
+def journey_view(tid: str):
+    if tid not in st.S["traces"]:
+        raise HTTPException(404, f"No trace {tid}")
+    out = locked(journey.journey, tid)
+    journey.git_commits(out["git"])  # network I/O: deliberately outside st.LOCK
+    return out
 
 
 # ------------------------------------------------------------------ version control
