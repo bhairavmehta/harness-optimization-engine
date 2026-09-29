@@ -506,6 +506,7 @@ def _open_pr(bid, fid, fv, a, base, cand):
     out = {"method": "Open pull request", "target": a.get("repo"), "title": title, "body": body,
            "patch": H.patch(base, cand), **g}
     if g["live"]:
+        vcs.invalidate()  # the Version control screen shows the new branch and PR on its next poll
         S.setdefault("prs", {})[f"{bid}/{fid}"] = {k: g[k] for k in ("pr_number", "pr_url", "branch", "branch_url")} | {
             "commits": g["commits"], "at": now_iso()}
         audit("You", "Pull request reused" if g["pr_reused"] else "Pull request opened", f"{bid}/{fid}",

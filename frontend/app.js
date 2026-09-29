@@ -1054,23 +1054,85 @@ async function vHoodManifest() {
   });
 }
 
+/* ------------------------------------------------------------------ version control */
+const PR_BADGE = { open: 'good', merged: 'purple', closed: '' };
+function vcsHTML(d, fresh) {
+  const sy = d.sync, isNew = k => fresh.has(k) ? ' <span class="badge bad">new</span>' : '';
+  const syncAlert = !sy ? '' : sy.in_sync
+    ? `<div class="alert info"><div><b>In sync.</b> The code this server is running matches <span class="mono">${esc(d.repo_meta.default_branch)}</span> @ ${ext(d.head.url, d.head.short, 'mono')} (${sy.compared} files compared by git blob hash).</div></div>`
+    : `<div class="alert bad"><div><b>${sy.drift.length} file${sy.drift.length > 1 ? 's' : ''} differ from ${esc(d.repo_meta.default_branch)}</b> @ ${ext(d.head.url, d.head.short, 'mono')}. The running code has changes that are not on GitHub, or GitHub has changes that are not deployed.
+        <ul class="small" style="margin:6px 0 0;padding-left:18px">${sy.drift.map(f => `<li><span class="mono">${f.url ? ext(f.url, esc(f.path)) : esc(f.path)}</span> · ${esc(f.status)}</li>`).join('')}</ul></div></div>`;
+  const open = (d.pulls || []).filter(p => p.state === 'open').length;
+  return `${d.error ? `<div class="alert warn"><div><b>Could not reach GitHub:</b> ${esc(d.error)}${d.commits ? ' Showing the last good sync.' : ''}</div></div>` : ''}
+    ${syncAlert}
+    ${d.commits ? kpis([{ v: ext(d.head.url, d.head.short, 'mono'), l: `Head of ${d.repo_meta.default_branch}` }, { v: open, l: 'Open pull requests', d: `${d.pulls.length} recent in total` },
+      { v: d.branches.length, l: 'Branches' }, { v: esc((d.repo_meta.pushed_at || '').replace(' UTC', '')), l: 'Last push (UTC)' }]) : ''}
+    <div class="small muted" style="margin:-8px 0 16px">Checked ${esc(d.checked_at || '—')} · data from ${esc(d.fetched_at || '—')} · next GitHub check in ~${d.next_check_s}s (every ${d.poll_s}s${d.read_auth ? '' : ', anonymous: set HOE_GITHUB_READ_TOKEN for 15s'}) ·
+      API ${d.rate.remaining ?? '?'}/${d.rate.limit ?? '?'} left · pull requests: ${d.live ? '<b>live</b>' : 'dry run'}</div>
+    ${d.commits ? `<div class="grid-2">
+      <div class="panel"><div class="panel-head"><h2>Commits on ${esc(d.repo_meta.default_branch)}</h2>${ext(`${d.url}/commits/${d.repo_meta.default_branch}`, 'All commits')}</div>
+        <table><tr><th>Commit</th><th>Message</th><th>Author</th><th>Date (UTC)</th></tr>
+        ${d.commits.map(c => `<tr><td>${ext(c.url, c.short, 'mono')}</td><td>${esc(c.message)}${c.merge ? ' <span class="badge">merge</span>' : ''}${isNew('c:' + c.sha)}</td><td class="small">${esc(c.author)}</td><td class="small nowrap">${esc(c.date.replace(' UTC', ''))}</td></tr>`).join('')}</table></div>
+      <div class="panel"><div class="panel-head"><h2>Pull requests</h2>${ext(d.pulls_url || `${d.url}/pulls`, 'All pull requests')}</div>
+        ${d.pulls.length ? `<table><tr><th>#</th><th>Title</th><th>State</th><th>Updated (UTC)</th></tr>
+        ${d.pulls.map(p => `<tr><td>${ext(p.url, '#' + p.number)}</td><td>${esc(p.title)}${p.hoe ? ' <span class="badge info">HOE</span>' : ''}${isNew(`p:${p.number}:${p.state}`)}<div class="small faint mono">${esc(p.branch)} → ${esc(p.base)} · ${esc(p.author)}</div></td>
+          <td><span class="badge ${PR_BADGE[p.state] ?? ''}">${esc(p.state)}</span></td><td class="small nowrap">${esc(p.updated.replace(' UTC', ''))}</td></tr>`).join('')}</table>` : empty('No pull requests yet.')}</div>
+    </div>
+    <div class="grid-2">
+      <div class="panel"><h2>Branches</h2><table><tr><th>Branch</th><th>Head</th><th class="num">Ahead</th><th class="num">Behind</th><th>Pull request</th></tr>
+        ${d.branches.map(b => `<tr><td>${ext(b.url, esc(b.name), 'mono')}${b.default ? ' <span class="badge">default</span>' : ''}${b.hoe ? ' <span class="badge info">HOE</span>' : ''}${isNew('b:' + b.name + ':' + b.sha)}</td>
+          <td>${ext(b.commit_url, b.short, 'mono')}</td><td class="num">${b.default ? '—' : b.ahead}</td><td class="num">${b.default ? '—' : b.behind}</td>
+          <td>${b.pr ? `${ext(b.pr.url, '#' + b.pr.number)} <span class="badge ${PR_BADGE[b.pr.state] ?? ''}">${esc(b.pr.state)}</span>` : '<span class="faint">none</span>'}</td></tr>`).join('')}</table></div>
+      <div class="panel"><div class="panel-head"><h2>Git activity in this app</h2><a href="#/audit?q=Pull%20request">Audit log</a></div>
+        ${d.activity.length ? `<table><tr><th>Time</th><th>Event</th><th>Detail</th></tr>${d.activity.map(r => `<tr><td class="small nowrap">${esc(r.time)}</td><td class="small">${esc(r.event)}<div class="faint">${esc(r.obj)}</div></td>
+          <td class="small">${esc(r.detail).replace(/(https:\/\/github\.com\/[^\s]+)/g, u => ext(u, u))}</td></tr>`).join('')}</table>`
+          : empty('No Git activity yet. Open a pull request from a fix bundle, or press Sync now.')}</div>
+    </div>
+    ${sy && sy.neutral.length ? `<div class="panel"><h2>Not part of this deployment</h2><p class="small muted">Files outside the runnable code (backend, frontend, requirements.txt) that exist on only one side. Expected on a zip deployment.</p>
+      <ul class="small mono" style="margin:0;padding-left:18px">${sy.neutral.map(f => `<li>${f.url ? ext(f.url, esc(f.path)) : esc(f.path)} <span class="faint">· ${esc(f.status)}</span></li>`).join('')}</ul></div>` : ''}` : ''}`;
+}
+
+function vcsKeys(d) {
+  return new Set([...(d.commits || []).map(c => 'c:' + c.sha), ...(d.pulls || []).map(p => `p:${p.number}:${p.state}`),
+    ...(d.branches || []).map(b => 'b:' + b.name + ':' + b.sha)]);
+}
+
+async function vVcs() {
+  crumbs([['Version control']]);
+  const draw = (d, announce) => {
+    const keys = vcsKeys(d), prev = S.vcsSeen;
+    const fresh = prev ? new Set([...keys].filter(k => !prev.has(k))) : new Set();
+    S.vcsSeen = keys;
+    const box = $('#vcsbody');
+    if (!box) return;
+    box.innerHTML = vcsHTML(d, fresh);
+    if (announce && fresh.size) toast(`GitHub changed: ${fresh.size} new item${fresh.size > 1 ? 's' : ''}`);
+  };
+  page(`${head('Version control', `${ext(S.boot.git.url, esc(S.boot.git.repo))} · the code, branches and pull requests this app delivers to, kept in sync with GitHub`,
+    `<button class="btn primary" data-act="vsync" data-busy="Syncing…">Sync now</button>${ext(S.boot.git.url, 'Open on GitHub', 'btn')}`)}
+    <div id="vcsbody"><div class="loading">Reading GitHub…</div></div>`);
+  draw(await api('/api/vcs'), false);
+  ACT.vsync = btn => busy(btn, async () => { draw(await post('/api/vcs/sync'), true); toast('Synced with GitHub'); });
+  S.timers.push(setInterval(async () => { try { draw(await api('/api/vcs'), true); } catch (e) { /* keep last view */ } }, 15000));
+}
+
 /* ================================================================== shell */
 const NAV = [['overview', 'Overview'], ['themes', 'Failure themes'], ['fixes', 'Fix bundles'], ['approvals', 'Approvals'], ['experiments', 'Experiments'],
   ['optimizer', 'Optimizer & RL'], ['sep'], ['regression', 'Regression suites'], ['traces', 'Evidence explorer'], ['evaluators', 'Evaluator health'],
   ['patterns', 'Pattern library'], ['agents', 'Agents & connections'], ['audit', 'Audit log'],
   ['label', 'Under the hood'], ['detection', 'Detection'], ['rootcause', 'Root cause'], ['statistics', 'Statistics'], ['judges', 'Judges'],
-  ['release', 'Release'], ['manifest', 'Manifest hash']];
+  ['release', 'Release'], ['manifest', 'Manifest hash'], ['sep'], ['vcs', 'Version control']];
 const ROUTES = [[/^overview$/, vOverview], [/^themes$/, vThemes], [/^themes\/(.+)$/, vTheme], [/^fixes$/, vFixes], [/^fixes\/([^/]+)\/([^/]+)$/, vFix],
   [/^approvals$/, vApprovals], [/^approvals\/(.+)$/, vApproval], [/^experiments$/, vExperiments], [/^experiments\/(.+)$/, vExperiment],
   [/^optimizer$/, vOptimizer], [/^regression$/, vRegression], [/^traces$/, vTraces], [/^traces\/(.+)$/, vTrace], [/^evaluators$/, vEvaluators],
   [/^patterns$/, vPatterns], [/^agents$/, vAgents], [/^audit$/, vAudit], [/^detection$/, vHoodDetection], [/^rootcause$/, vHoodRootCause],
-  [/^statistics$/, vHoodStatistics], [/^judges$/, vHoodJudges], [/^release$/, vHoodRelease], [/^manifest$/, vHoodManifest]];
+  [/^statistics$/, vHoodStatistics], [/^judges$/, vHoodJudges], [/^release$/, vHoodRelease], [/^manifest$/, vHoodManifest], [/^vcs$/, vVcs]];
 
 const HOOD_KEYS = ['detection', 'rootcause', 'statistics', 'judges', 'release', 'manifest'];
-const TOP_LABEL = { optimizer: 'Optimizer', regression: 'Regression', traces: 'Evidence', evaluators: 'Evaluators', patterns: 'Patterns', agents: 'Agents' };
+const TOP_LABEL = { optimizer: 'Optimizer', regression: 'Regression', traces: 'Evidence', evaluators: 'Evaluators', patterns: 'Patterns', agents: 'Agents', vcs: 'Git' };
 function renderTopNav(section) {
-  const items = NAV.filter(([k]) => k !== 'sep' && k !== 'label' && !HOOD_KEYS.includes(k)).map(([k, l]) => [k, TOP_LABEL[k] || l])
-    .concat([['detection', 'Under the hood']]);
+  const items = NAV.filter(([k]) => k !== 'sep' && k !== 'label' && k !== 'vcs' && !HOOD_KEYS.includes(k)).map(([k, l]) => [k, TOP_LABEL[k] || l])
+    .concat([['detection', 'Under the hood'], ['vcs', TOP_LABEL.vcs]]);
   $('#topnav').innerHTML = items.map(([k, l], i) => {
     const on = k === section || (k === 'detection' && HOOD_KEYS.includes(section));
     return `<li><a href="#/${k}" class="${on ? 'active' : ''}" ${on ? 'aria-current="page"' : ''}><span class="n">${i + 1}</span> ${l}${k === 'approvals' && S.boot?.waiting ? `<span class="count">${S.boot.waiting}</span>` : ''}</a></li>`;

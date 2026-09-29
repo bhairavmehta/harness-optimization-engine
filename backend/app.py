@@ -360,6 +360,34 @@ async def hood_verify(aid: str, req: Request):
     return locked(hood.verify_hash, aid, b.get("hash"))
 
 
+# ------------------------------------------------------------------ version control
+GIT_EVENTS = ("Pull request", "Version control")
+
+
+def _vcs_view(force):
+    out = vcs.summary(force=force)  # network I/O: deliberately outside st.LOCK
+    with st.LOCK:
+        out["activity"] = [r for r in st.S["audit"][::-1] if r["event"].startswith(GIT_EVENTS)][:50]
+        out["hoe_prs"] = st.S.get("prs", {})
+    return out
+
+
+@app.get("/api/vcs")
+def vcs_view():
+    return _vcs_view(False)
+
+
+@app.post("/api/vcs/sync")
+def vcs_sync():
+    out = _vcs_view(True)
+    s = out.get("sync") or {}
+    with st.LOCK:
+        st.audit("You", "Version control synced", vcs.REPO,
+                 out["error"] or f"main @ {out['head']['short']} · " + ("code in sync" if s.get("in_sync") else f"{len(s.get('drift', []))} files differ"))
+        out["activity"] = [r for r in st.S["audit"][::-1] if r["event"].startswith(GIT_EVENTS)][:50]
+    return out
+
+
 # ------------------------------------------------------------------ frontend
 app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
 

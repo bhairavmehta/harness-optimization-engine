@@ -267,3 +267,6 @@ ol.steps li::marker { color: var(--red); font-weight: 700; }
 .ov-custom input { padding: 6px 8px; font: 13px var(--sans); border: 1px solid var(--line); border-radius: var(--r-sm); }
 .ov-run { font-weight: 700; }
 @media (max-width: 860px) { .ov-field select { min-width: 0; width: 100%; } .ov-field { flex: 1 1 100%; } }
+
+/* version control */
+.kpi .v a { text-decoration: none; }

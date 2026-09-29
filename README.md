@@ -43,6 +43,21 @@ Optional: `HOE_GITHUB_REPO` (default `bhairavmehta/harness-optimization-engine`)
 `HOE_GITHUB_PATH` (`agents/{agent}`). Code: `backend/engine/vcs.py`. Leave the token unset on public
 deployments, or anyone with the URL can open PRs.
 
+## Version control
+
+**Version control** (bottom of the sidebar, **Git** in the top tabs) shows the repository live: commits on
+`main`, pull requests (open, merged, closed; HOE-opened ones are tagged), branches with ahead/behind counts,
+and every Git action this app has taken. It refreshes every 15 s and flags anything new; **Sync now** forces
+a refresh and logs it to the audit trail.
+
+It also checks that the running code **is** what is on GitHub: each file under `backend/`, `frontend/` and
+`requirements.txt` is hashed the way git hashes blobs and compared with the tree at the head of `main`, so
+drift shows up file by file even on a zip deployment with no `.git` folder.
+
+GitHub is polled with a cheap probe (branch heads + recent PRs) and fully re-read only when something changed:
+every 15 s with a token, every 180 s anonymously (GitHub allows 60 anonymous requests an hour per server).
+Set `HOE_GITHUB_READ_TOKEN` (read-only) on a public deployment to sync quickly without enabling PR creation.
+
 ## Screens
 
 | Tab | What it does |
