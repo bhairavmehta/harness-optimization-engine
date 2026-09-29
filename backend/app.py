@@ -9,8 +9,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import state as st
-from .engine import env, harness as H, jobs, llm
+from . import hood, state as st
+from .engine import env, harness as H, jobs, llm, vcs
 
 app = FastAPI(title="Harness Optimization Engine", version="1.0")
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
@@ -42,7 +42,7 @@ def locked(fn, *a, **k):
 # ------------------------------------------------------------------ meta
 @app.get("/api/bootstrap")
 def bootstrap():
-    return {"agents": st.agents_view()["items"], "waiting": st.approvals()["waiting"], "llm": llm.available(),
+    return {"agents": st.agents_view()["items"], "waiting": st.approvals()["waiting"], "llm": llm.available(), "git": vcs.status(),
             "library": {"lines": H.LINES, "gates": H.GATES, "tools": H.TOOLS, "criteria": H.CRITERIA},
             "decisions": env.DECISION_LABEL, "actions": env.ACTION_LABEL}
 
@@ -54,8 +54,8 @@ def reset():
 
 # ------------------------------------------------------------------ overview & themes
 @app.get("/api/overview/{aid}")
-def overview(aid: str):
-    return locked(st.overview, aid)
+def overview(aid: str, range: str = "7d", start: str = None, end: str = None):
+    return locked(st.overview, aid, range, start, end)
 
 
 @app.post("/api/analysis/{aid}")
@@ -340,6 +340,24 @@ def audit_export():
 @app.get("/api/lineage/{obj}")
 def lineage(obj: str):
     return st.lineage(obj)
+
+
+# ------------------------------------------------------------------ under the hood
+HOOD = {"detection": hood.detection, "rootcause": hood.root_cause, "statistics": hood.statistics,
+        "judges": hood.judges_view, "release": hood.release, "manifest": hood.manifests}
+
+
+@app.get("/api/hood/{section}/{aid}")
+def hood_view(section: str, aid: str):
+    if section not in HOOD:
+        raise HTTPException(404, f"Unknown section {section}")
+    return locked(HOOD[section], aid)
+
+
+@app.post("/api/hood/manifest/{aid}/verify")
+async def hood_verify(aid: str, req: Request):
+    b = await body(req)
+    return locked(hood.verify_hash, aid, b.get("hash"))
 
 
 # ------------------------------------------------------------------ frontend

@@ -7,9 +7,13 @@ approvals, regression gates and a staged rollout, recording every step in a hash
 
 Everything runs on a deterministic simulation, so no model API key is needed.
 
+Repository: https://github.com/bhairavmehta/harness-optimization-engine
+
 ## Run
 
 ```bash
+git clone https://github.com/bhairavmehta/harness-optimization-engine.git
+cd harness-optimization-engine
 ./run.sh                       # or: pip install -r requirements.txt && uvicorn backend.app:app --reload
 open http://localhost:8000
 ```
@@ -19,6 +23,25 @@ re-seeds the demo.
 
 Optional: `export ANTHROPIC_API_KEY=...` enables the LLM reflective proposer in harness search.
 `HOE_LLM_MODEL` sets the model (default `claude-sonnet-5`).
+
+## GitHub pull requests
+
+For the first-party billing agent, **Fix bundles → Open pull request** delivers a fix to
+[bhairavmehta/harness-optimization-engine](https://github.com/bhairavmehta/harness-optimization-engine):
+it creates branch `hoe/<bundle>-<fix>` from `main`, commits the production baseline and then the fix to
+`agents/billing/system_prompt.md` and `agents/billing/harness.yaml`, and opens a PR whose body carries the
+theme, offline-replay lift, regression result and diff. The fix page, audit log and Agents page link to the
+PR, branch, commits and files. Clicking again reuses the open PR and commits only if something changed.
+
+Without a token it is a **dry run**: the same links, plus the `git` / `gh` commands to do it by hand. To go live:
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)   # or a fine-grained token: Contents + Pull requests (read/write)
+```
+
+Optional: `HOE_GITHUB_REPO` (default `bhairavmehta/harness-optimization-engine`), `HOE_GITHUB_BASE` (`main`),
+`HOE_GITHUB_PATH` (`agents/{agent}`). Code: `backend/engine/vcs.py`. Leave the token unset on public
+deployments, or anyone with the URL can open PRs.
 
 ## Screens
 
@@ -36,6 +59,19 @@ Optional: `export ANTHROPIC_API_KEY=...` enables the LLM reflective proposer in 
 | Pattern library | Proven fixes tested against other agents |
 | Agents & connections | Integration levels, capability matrix, agent registration |
 | Audit log | SHA-256 hash chain, verification, JSONL export |
+
+**Under the hood** (sidebar group) explains each mechanism with live numbers for the selected agent:
+
+| Page | What it shows |
+|---|---|
+| Detection | The six OR-ed flag signals, hits and sole-signal catches, overlap, first-match theme assignment |
+| Root cause | Theme rate per harness version, the release with the largest rise, the edits it made, confidence formula |
+| Statistics | A live paired replay (production vs a derived candidate) with bootstrap distribution, 95% CI and p-value on judge and human-audit metrics; Holm correction from the latest experiment |
+| Judges | Resolution-judge settings and rubric, confusion matrix and Cohen's κ derivation, counterfactual cost of the verbosity bonus |
+| Release | Approval routing by change type, regression gate, rollout stages and auto-rollback thresholds, open changes |
+| Manifest hash | SHA-256 of each harness version's canonical manifest (content only, names excluded), frozen-lines hash, hash verification for vendor attestation |
+
+API: `GET /api/hood/{detection|rootcause|statistics|judges|release|manifest}/{agent}`, `POST /api/hood/manifest/{agent}/verify` with `{"hash": "..."}`. Code: `backend/hood.py`.
 
 ## How the simulation works
 

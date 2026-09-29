@@ -25,7 +25,7 @@ def kappa(a, b):
     return 1.0 if pe >= 1 else (po - pe) / (1 - pe)
 
 
-def paired_bootstrap(x, y, B=500, seed=7):
+def paired_bootstrap(x, y, B=500, seed=7, return_boots=False):
     """Mean of (y - x) with a percentile CI and a two-sided bootstrap p-value."""
     d = [float(b) - float(a) for a, b in zip(x, y)]
     n = len(d)
@@ -44,7 +44,10 @@ def paired_bootstrap(x, y, B=500, seed=7):
     frac_le = sum(1 for v in boots if v <= 0) / B
     frac_ge = sum(1 for v in boots if v >= 0) / B
     p = min(1.0, 2 * min(frac_le, frac_ge))
-    return {"diff": m, "lo": lo, "hi": hi, "p": max(p, 1.0 / B), "n": n}
+    out = {"diff": m, "lo": lo, "hi": hi, "p": max(p, 1.0 / B), "n": n}
+    if return_boots:
+        out["boots"] = boots
+    return out
 
 
 def holm(pvals):
