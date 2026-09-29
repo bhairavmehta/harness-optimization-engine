@@ -12,7 +12,7 @@ import threading
 import zlib
 from collections import Counter
 
-from .engine import analysis as A, env, evaluate as E, harness as H, jobs, judges, optimizer, rl
+from .engine import analysis as A, env, evaluate as E, harness as H, jobs, judges, optimizer, rl, vcs
 
 LOCK = threading.RLock()
 START = dt.date(2026, 9, 12)
@@ -21,7 +21,7 @@ S = {}
 AGENTS = [
     {"id": "billing", "name": "Customer Care Billing Agent", "type": "First-party", "integration": "Repo + CI connected",
      "level": "1p_repo", "owner": "CX Digital", "traffic": "482K / wk", "kind": "billing",
-     "repo": "github.verizon.com/cx/billing-agent", "per_day": 150},
+     "repo": f"github.com/{vcs.REPO}", "repo_url": vcs.repo_url(), "repo_path": vcs.agent_path("billing"), "per_day": 150},
     {"id": "store", "name": "Store Appointment Agent", "type": "First-party", "integration": "Traces only, no repo",
      "level": "1p_norepo", "owner": "Retail Ops", "traffic": "96K / wk", "kind": None},
     {"id": "outage", "name": "Network Outage Voice Agent", "type": "Third-party", "integration": "Runtime config API",
@@ -374,7 +374,7 @@ def fix_view(bid, fid):
             "base": H.public(base), "cand": H.public(cand), "prompt_rows": H.prompt_rows(base, cand),
             "config_rows": H.config_rows(base, cand), "edit_labels": [H.edit_label(e) for e in f["edits"]],
             "approval": next((ap["id"] for ap in S["approvals"].values() if bid == ap.get("bundle_id") and fid in ap.get("fix_ids", [])), None),
-            "patch": H.patch(base, cand)}
+            "patch": H.patch(base, cand), "pr": S.get("prs", {}).get(f"{bid}/{fid}")}
 
 
 def bundle_view(bid):
@@ -446,14 +446,7 @@ def delivery(bid, fid, method):
     a = agent(b["agent"])
     base, cand = get_h(b["base_id"]), get_h(fv["harness_id"])
     if method == "pr":
-        branch = f"hoe/fix-{fid.replace('-', '')}-{bid.lower()}"
-        body = (f"## {fv['title']}\n\nTheme: {fv['theme']['name']} ({fv['theme']['traces']} traces)\n\n"
-                + (f"Offline replay (n={fv['validation']['n']}): resolution {fv['validation']['lift']['diff'] * 100:+.1f} pts "
-                   f"(95% CI {fv['validation']['lift']['lo'] * 100:+.1f} to {fv['validation']['lift']['hi'] * 100:+.1f})\n\n"
-                   if fv["validation"] and fv["validation"].get("lift") else "")
-                + "CI runs the regression suite on this branch. Merge follows your SDLC.")
-        out = {"method": "Open pull request", "target": a.get("repo"), "branch": branch, "title": fv["title"],
-               "body": body, "patch": H.patch(base, cand)}
+        out = _open_pr(bid, fid, fv, a, base, cand)
     elif method == "registry":
         out = {"method": "Prompt registry", "payload": {"agent": a["id"], "version": cand["version"],
                                                         "system_prompt": H.system_prompt(cand), "gates": cand["gates"],
@@ -470,7 +463,55 @@ def delivery(bid, fid, method):
     else:
         out = {"method": "Gateway overlay", "overlay": {"pre": [], "post": [g for g in cand["gates"] if g not in base["gates"]],
                                                        "note": "Tool gating and pre/post-processing in the Verizon proxy layer"}}
-    audit("You", "Delivery artifact generated", f"{bid}/{fid}", out["method"])
+    if method != "pr":
+        audit("You", "Delivery artifact generated", f"{bid}/{fid}", out["method"])
+    return out
+
+
+def _harness_files(folder, h):
+    return {f"{folder}/system_prompt.md": H.system_prompt(h) + "\n", f"{folder}/harness.yaml": H.harness_yaml(h) + "\n"}
+
+
+def _open_pr(bid, fid, fv, a, base, cand):
+    """Branch + two commits (production baseline, then the fix) + pull request on the agent's repo."""
+    if not a.get("repo_path"):
+        raise ValueError(f"{a['name']} has no connected repository.")
+    folder, v = a["repo_path"], fv["validation"]
+    branch = f"hoe/{bid.lower()}-{fid.lower()}"
+    title = f"[HOE] {fid}: {fv['title']}"
+    lift = v and v.get("lift")
+    body = "\n".join([
+        f"## {fv['title']}", "",
+        f"Proposed by the Harness Optimization Engine for **{a['name']}** ({base['version']} → {cand['version']}).", "",
+        f"- **Failure theme:** {fv['theme']['name']} ({fv['theme']['traces']} traces)",
+        f"- **Layer / risk:** {fv['layer']} · {fv['risk']}",
+        *([f"- **Offline replay (n={v['n']}):** resolution {lift['diff'] * 100:+.1f} pts "
+           f"(95% CI {lift['lo'] * 100:+.1f} to {lift['hi'] * 100:+.1f})"] if lift else []),
+        *([f"- **Regression suite:** {v['regression']['passed']}/{v['regression']['total']} pass"] if v and v.get("regression") else []),
+        "", "### Edits", *[f"- {e}" for e in fv["edit_labels"]], "",
+        "### Commits",
+        f"1. Production baseline `{base['version']}` (so the second commit shows the exact change)",
+        f"2. The fix: `{cand['version']}`", "",
+        "### Diff", "```diff", H.patch(base, cand), "```", "",
+        "CI runs the regression suite on this branch. Merge follows your SDLC; production rollout still goes "
+        "through HOE approvals and staged canary.",
+    ])
+    baseline = (f"HOE baseline: {a['id']} {base['version']} (production)", _harness_files(folder, base))
+    commits = [(f"{title} ({base['version']} → {cand['version']})", _harness_files(folder, cand))]
+    try:
+        g = vcs.open_pr(branch, title, body, commits, baseline=baseline)
+    except vcs.GitHubError as e:
+        audit("You", "Pull request failed", f"{bid}/{fid}", str(e))
+        raise ValueError(str(e)) from None
+    out = {"method": "Open pull request", "target": a.get("repo"), "title": title, "body": body,
+           "patch": H.patch(base, cand), **g}
+    if g["live"]:
+        S.setdefault("prs", {})[f"{bid}/{fid}"] = {k: g[k] for k in ("pr_number", "pr_url", "branch", "branch_url")} | {
+            "commits": g["commits"], "at": now_iso()}
+        audit("You", "Pull request reused" if g["pr_reused"] else "Pull request opened", f"{bid}/{fid}",
+              f"{vcs.REPO}#{g['pr_number']} {g['pr_url']}")
+    else:
+        audit("You", "Pull request prepared (dry run)", f"{bid}/{fid}", f"{vcs.REPO} branch {branch}")
     return out
 
 
@@ -956,31 +997,81 @@ def register_agent(name, typ, level, owner, traffic, actor="You"):
 
 
 # --------------------------------------------------------------------- views
-def overview(aid):
-    ts = [t for t in S["traces"].values() if t["agent"] == aid]
-    last = max((t["day"] for t in ts), default=0)
-    daily = []
-    for d in range(last + 1):
-        dd = [t for t in ts if t["day"] == d]
-        daily.append({"day": d, "date": day_label(d), "rate": sum(t["flagged"] for t in dd) / max(1, len(dd)), "n": len(dd),
-                      "version": dd[0]["version"] if dd else None})
-    releases = [{"day": h["released_day"], "version": h["version"]} for h in S["harnesses"].values()
-                if h["agent"] == aid and "released_day" in h and 0 < h["released_day"] <= last]
+RANGES = {"24h": 1, "7d": 7, "30d": 30}
+
+
+def _window(ts, rng="7d", start=None, end=None):
+    """Resolve a traffic window to (first_day, last_day), clipped to the days that have traces."""
+    lo, hi = min((t["day"] for t in ts), default=0), max((t["day"] for t in ts), default=0)
+    if rng == "custom" and start and end:
+        a = (dt.date.fromisoformat(start) - START).days
+        b = (dt.date.fromisoformat(end) - START).days
+        if a > b:
+            a, b = b, a
+        return max(lo, a), min(hi, b)
+    return max(lo, hi - RANGES.get(rng, 7) + 1), hi
+
+
+def _window_label(rng, start, end, d0, d1):
+    if rng == "custom" and start and end:  # show what was asked for, even if it has no traces
+        d0, d1 = sorted(((dt.date.fromisoformat(start) - START).days, (dt.date.fromisoformat(end) - START).days))
+    return day_label(d0) if d0 == d1 else f"{day_label(d0)} – {day_label(d1)}"
+
+
+def overview(aid, rng="7d", start=None, end=None):
+    all_ts = [t for t in S["traces"].values() if t["agent"] == aid]
+    d0, d1 = _window(all_ts, rng, start, end)
+    ts = [t for t in all_ts if d0 <= t["day"] <= d1]
+    lo, hi = min((t["day"] for t in all_ts), default=0), max((t["day"] for t in all_ts), default=0)
+    if d0 == d1:  # a single day: bucket by hour
+        daily = []
+        for hr in range(24):
+            hh = [t for t in ts if int(t["time"][:2]) == hr]
+            if hh:
+                daily.append({"day": d0, "date": f"{hr:02d}:00", "rate": sum(t["flagged"] for t in hh) / len(hh), "n": len(hh),
+                              "version": hh[0]["version"]})
+        releases = []
+    else:
+        daily = []
+        for d in range(d0, d1 + 1):
+            dd = [t for t in ts if t["day"] == d]
+            daily.append({"day": d, "date": day_label(d), "rate": sum(t["flagged"] for t in dd) / max(1, len(dd)), "n": len(dd),
+                          "version": dd[0]["version"] if dd else None})
+        releases = [{"day": h["released_day"] - d0, "version": h["version"]} for h in S["harnesses"].values()
+                    if h["agent"] == aid and "released_day" in h and d0 < h["released_day"] <= d1]
     flagged = [t for t in ts if t["flagged"]]
     signals = [("LLM-judge evaluators (Galileo)", sum(not t["judged_pass"] for t in ts)),
                ("Repeat contact within 72h", sum(t["repeat"] for t in ts)),
                ("Tool-call errors and retries", sum(t["anomaly"] for t in ts)),
                ("Low CSAT (1–2)", sum(t["csat"] <= 2 for t in ts)),
                ("Human reviewer flags", sum(bool(t.get("human_flag")) for t in ts))]
+    # themes re-counted on the window; ids match the stored themes so links and fix status carry over
+    versions = {h["id"]: h for h in S["harnesses"].values() if h["agent"] == aid and "released_day" in h}
+    win_themes = []
+    for th in A.build_themes(aid, ts, versions) if ts else []:
+        if th["id"] not in S["theme_index"]:
+            continue
+        th["first_seen"] = day_label(th["first_seen_day"])
+        th["status"], th["fixes"] = _theme_status(th)
+        # 7-day trend ending at the window's last day, looking back past the window if needed
+        hits = Counter(t["day"] for t in all_ts if t["flagged"] and t["theme"] == th["key"])
+        last7 = sum(hits[d] for d in range(d1 - 6, d1 + 1))
+        prev7 = sum(hits[d] for d in range(d1 - 13, d1 - 6))
+        th["trend"] = (last7 - prev7) / prev7 if prev7 else None
+        win_themes.append(th)
     a = agent(aid)
+    iso = lambda d: (START + dt.timedelta(days=int(d))).isoformat()
     return {"agent": {k: v for k, v in a.items() if k != "per_day"}, "production": H.public(prod(aid)) if a.get("kind") else None,
+            "window": {"range": rng if rng in RANGES or rng == "custom" else "7d", "start": iso(d0), "end": iso(d1),
+                       "days": max(0, d1 - d0 + 1), "label": _window_label(rng, start, end, d0, d1),
+                       "min": iso(lo), "max": iso(hi), "available_days": hi - lo + 1},
             "kpis": {"traces": len(ts), "flagged": len(flagged), "flag_rate": len(flagged) / max(1, len(ts)),
-                     "themes": len(S["themes"].get(aid, [])),
-                     "critical": sum(1 for t in themes(aid) if t["sev"] == "Critical"),
+                     "themes": len(win_themes),
+                     "critical": sum(1 for t in win_themes if t["sev"] == "Critical"),
                      "waiting": approvals()["waiting"],
                      "repeat": sum(t["repeat"] for t in ts) / max(1, len(ts))},
             "daily": daily, "releases": releases, "signals": [{"label": l, "value": v} for l, v in signals],
-            "themes": themes(aid)}
+            "themes": win_themes}
 
 
 def lineage(obj):

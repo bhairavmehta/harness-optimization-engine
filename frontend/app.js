@@ -85,13 +85,13 @@ function lineChart({ series, labels = [], height = 220, yFmt = v => pct(v, 0), y
   let g = '';
   for (let k = 0; k <= 4; k++) {
     const v = lo + (hi - lo) * k / 4;
-    g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#EFEEF4"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${esc(yFmt(v))}</text>`;
+    g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#EEEEEE"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${esc(yFmt(v))}</text>`;
   }
   const step = Math.ceil(n / 8);
   labels.forEach((l, i) => { if (i % step === 0 || i === n - 1) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="${i === n - 1 && n > 1 ? 'end' : i === 0 ? 'start' : 'middle'}">${esc(l)}</text>`; });
   markers.forEach(m => {
-    g += `<line x1="${x(m.i)}" x2="${x(m.i)}" y1="${T}" y2="${H - B}" stroke="#5A2A78" stroke-dasharray="4 4"/>` +
-      `<text x="${x(m.i) + 5}" y="${T + 11}" style="fill:#5A2A78">${esc(m.label)}</text>`;
+    g += `<line x1="${x(m.i)}" x2="${x(m.i)}" y1="${T}" y2="${H - B}" stroke="#EE0000" stroke-dasharray="4 4"/>` +
+      `<text x="${x(m.i) + 5}" y="${T + 11}" style="fill:#EE0000">${esc(m.label)}</text>`;
   });
   series.forEach(s => {
     const pts_ = s.values.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
@@ -113,23 +113,23 @@ function scatter({ points, xFmt = v => num(v), yFmt = v => pct(v, 0), xLabel = '
   let g = '';
   for (let k = 0; k <= 3; k++) {
     const vy = y0 + (y1 - y0) * k / 3, vx = x0 + (x1 - x0) * k / 3;
-    g += `<line x1="${L}" x2="${W - R}" y1="${Y(vy)}" y2="${Y(vy)}" stroke="#EFEEF4"/><text x="${L - 6}" y="${Y(vy) + 4}" text-anchor="end">${esc(yFmt(vy))}</text>`;
+    g += `<line x1="${L}" x2="${W - R}" y1="${Y(vy)}" y2="${Y(vy)}" stroke="#EEEEEE"/><text x="${L - 6}" y="${Y(vy) + 4}" text-anchor="end">${esc(yFmt(vy))}</text>`;
     g += `<text x="${X(vx)}" y="${H - 22}" text-anchor="middle">${esc(xFmt(vx))}</text>`;
   }
   g += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(xLabel)}</text>`;
   g += `<text x="12" y="${T + (H - T - B) / 2}" transform="rotate(-90 12 ${T + (H - T - B) / 2})" text-anchor="middle">${esc(yLabel)}</text>`;
   points.forEach(p => {
     g += `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="${p.r || 7}" fill="${p.color}" fill-opacity=".9" stroke="#fff" stroke-width="2"/>` +
-      `<text x="${X(p.x) + 11}" y="${Y(p.y) + 4}" style="fill:#1A1233;font-weight:500">${esc(p.label)}</text>`;
+      `<text x="${X(p.x) + 11}" y="${Y(p.y) + 4}" style="fill:#000000;font-weight:500">${esc(p.label)}</text>`;
   });
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
 }
 
-function spark(values, color = '#0070AD', w = 96, h = 26, thr = null) {
+function spark(values, color = '#000000', w = 96, h = 26, thr = null) {
   if (!values || values.length < 2) return '';
   const lo = Math.min(...values, thr ?? 1), hi = Math.max(...values, thr ?? 0);
   const x = i => 2 + i * (w - 4) / (values.length - 1), y = v => 2 + (h - 4) * (1 - (v - lo) / ((hi - lo) || 1));
-  const t = thr != null ? `<line x1="0" x2="${w}" y1="${y(thr)}" y2="${y(thr)}" stroke="#FF304C" stroke-dasharray="2 2" stroke-width="1"/>` : '';
+  const t = thr != null ? `<line x1="0" x2="${w}" y1="${y(thr)}" y2="${y(thr)}" stroke="#EE0000" stroke-dasharray="2 2" stroke-width="1"/>` : '';
   return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${t}<polyline fill="none" stroke="${color}" stroke-width="1.8" points="${values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}"/></svg>`;
 }
 const hbar = (label, v, max, red) => `<div class="hbar"><div><div class="small">${esc(label)}</div><div class="bar ${red ? 'red' : ''}"><span style="width:${Math.max(2, 100 * v / (max || 1))}%"></span></div></div><div class="num small">${num(v)}</div></div>`;
@@ -240,20 +240,58 @@ function replayWidget(id, opts) {
 }
 
 /* ================================================================== views */
+const RANGES = [['24h', 'Last 24h'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['custom', 'Custom']];
+function overviewQuery() {
+  const q = S.query, r = q.get('range') || S.ovRange?.range || '7d';
+  const from = q.get('from') || S.ovRange?.from || '', to = q.get('to') || S.ovRange?.to || '';
+  S.ovRange = { range: r, from, to };
+  return r === 'custom' && from && to ? `range=custom&start=${from}&end=${to}` : `range=${r === 'custom' ? '7d' : r}`;
+}
+
+function overviewFilters(d) {
+  const w = d.window, r = S.ovRange.range, custom = r === 'custom';
+  return `<div class="ov-filters">
+    <label class="ov-field"><span>Agent</span><select data-change="ovagent">${S.boot.agents.map(a => `<option value="${a.id}" ${a.id === S.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+    <div class="ov-field"><span id="ptl">Production traffic</span>
+      <div class="seg ov-seg" role="group" aria-labelledby="ptl">${RANGES.map(([k, l]) => `<button type="button" class="${k === r ? 'on' : ''}" aria-pressed="${k === r}" data-act="ovrange" data-r="${k}">${l}</button>`).join('')}</div>
+      ${custom ? `<div class="ov-custom"><input type="date" id="ovfrom" value="${S.ovRange.from || w.start}" min="${w.min}" max="${w.max}" aria-label="From">
+        <span class="faint">to</span><input type="date" id="ovto" value="${S.ovRange.to || w.end}" min="${w.min}" max="${w.max}" aria-label="To">
+        <button class="btn sm" data-act="ovapply">Apply</button></div>` : ''}</div>
+    <button class="btn ov-run" data-act="analyze" data-busy="Analyzing…">Run analysis</button>
+  </div>`;
+}
+
 async function vOverview() {
   crumbs([['Overview']]);
-  const d = await api(`/api/overview/${S.agent}`);
-  if (!d.kpis.traces) { page(head('Overview', esc(d.agent.name)) + observeOnly(d.agent)); return; }
+  const d = await api(`/api/overview/${S.agent}?${overviewQuery()}`);
+  const w = d.window;
+  const headHTML = body => `<div class="page-head ov-head"><div><h1>Overview</h1><div class="sub">${body}</div></div>${overviewFilters(d)}</div>`;
+  ACT.ovagent = el => { S.agent = el.value; $('#agent').value = el.value; route(); };
+  ACT.ovrange = el => {
+    const r = el.dataset.r;
+    if (r === 'custom') { S.ovRange = { ...S.ovRange, range: 'custom', from: S.ovRange.from || w.start, to: S.ovRange.to || w.end }; location.hash = `#/overview?range=custom&from=${S.ovRange.from}&to=${S.ovRange.to}`; }
+    else location.hash = `#/overview?range=${r}`;
+  };
+  ACT.ovapply = () => {
+    const f = $('#ovfrom').value, t = $('#ovto').value;
+    if (!f || !t) { toast('Pick both dates.', true); return; }
+    location.hash = `#/overview?range=custom&from=${f}&to=${t}`;
+  };
+  ACT.analyze = btn => busy(btn, async () => { await post(`/api/analysis/${S.agent}`); toast('Analysis complete: themes re-clustered'); route(); });
+  if (!d.production) { page(headHTML(esc(d.agent.name)) + observeOnly(d.agent)); return; }
   const k = d.kpis;
+  const clipped = w.range === '30d' && w.available_days < 30 ? ` (only ${w.available_days} days of traces available)` : '';
+  const sub = `Production traces analyzed for failure themes and harness fixes<br><span class="small">${esc(d.production.version)} in production · ${esc(w.label)}${clipped}</span>`;
+  if (!k.traces) { page(headHTML(sub) + `<div class="panel">${empty('No production traces in this window. Pick a range between ' + esc(w.min) + ' and ' + esc(w.max) + '.')}</div>`); return; }
   const markers = d.releases.map(r => ({ i: r.day, label: `${r.version} released` }));
-  const maxSig = Math.max(...d.signals.map(s => s.value));
-  page(`${head('Overview', `${esc(d.agent.name)} · ${esc(d.production.version)} in production · last 14 days of traces`,
-    `<button class="btn primary" data-act="analyze" data-busy="Analyzing…">Run analysis</button>`)}
+  const maxSig = Math.max(...d.signals.map(s => s.value), 1);
+  const hourly = w.days === 1;
+  page(`${headHTML(sub)}
     ${kpis([{ v: num(k.traces), l: 'Traces analyzed' }, { v: num(k.flagged), l: 'Flagged sessions', d: `${pct(k.flag_rate)} of traces` },
       { v: k.themes, l: 'Failure themes', d: `${k.critical} critical` }, { v: k.waiting, l: 'Waiting for approval', d: '<a href="#/approvals">Review queue</a>' }])}
     <div class="grid-main"><div>
-      <div class="panel"><div class="panel-head"><h2>Flagged-session rate</h2><span class="muted small">Share of each day's sessions flagged by any signal</span></div>
-        ${lineChart({ series: [{ name: 'Flagged', color: '#0070AD', values: d.daily.map(x => x.rate), dots: true }], labels: d.daily.map(x => x.date), markers, yMin: 0 })}</div>
+      <div class="panel"><div class="panel-head"><h2>Flagged-session rate</h2><span class="muted small">Share of each ${hourly ? 'hour' : 'day'}'s sessions flagged by any signal</span></div>
+        ${lineChart({ series: [{ name: 'Flagged', color: '#000000', values: d.daily.map(x => x.rate), dots: true }], labels: d.daily.map(x => x.date), markers, yMin: 0, yMax: Math.min(1, Math.max(...d.daily.map(x => x.rate)) * 1.12 || 1) })}</div>
       <div class="panel"><div class="panel-head"><h2>Failure themes</h2><a href="#/themes">All themes</a></div>${themeTable(d.themes)}</div>
     </div><div>
       <div class="panel"><h2>Detection signals</h2>${d.signals.map(s => hbar(s.label, s.value, maxSig)).join('')}</div>
@@ -262,14 +300,13 @@ async function vOverview() {
         <span class="k">Gates</span><span>${d.production.gates.length ? d.production.gates.map(g => esc(S.boot.library.gates[g].text)).join('<br>') : 'None'}</span></div>
         <ul class="small" style="padding-left:18px;margin:12px 0 0">${d.production.lines.map(l => `<li>${esc(S.boot.library.lines[l].text)}${S.boot.library.lines[l].frozen ? ' <span class="lock">frozen</span>' : ''}</li>`).join('')}</ul></div>
     </div></div>`);
-  ACT.analyze = btn => busy(btn, async () => { await post(`/api/analysis/${S.agent}`); toast('Analysis complete: themes re-clustered'); route(); });
 }
 
 function themeTable(ts) {
   if (!ts.length) return empty('No failure themes yet. Run analysis to cluster flagged traces.');
   return `<div class="table-wrap"><table><tr><th>Theme</th><th>Severity</th><th class="num">Traces</th><th class="num">Trend 7d</th><th class="num">Repeat contact</th><th>Status</th></tr>
     ${ts.map(t => `<tr class="click" data-href="#/themes/${t.id}"><td>${esc(t.name)}<div class="small muted">${esc(t.layer)} · first seen ${esc(t.first_seen)}</div></td>
-      <td>${sevBadge(t.sev)}</td><td class="num">${num(t.traces)}</td><td class="num ${t.trend > 0 ? 'neg' : 'pos'}">${sign(t.trend * 100)}%</td>
+      <td>${sevBadge(t.sev)}</td><td class="num">${num(t.traces)}</td><td class="num ${t.trend > 0 ? 'neg' : 'pos'}">${t.trend == null ? '<span class="faint">n/a</span>' : `${sign(t.trend * 100)}%`}</td>
       <td class="num">${pct(t.repeat_rate, 0)}</td><td>${status(t.status)}</td></tr>`).join('')}</table></div>`;
 }
 
@@ -294,7 +331,7 @@ async function vTheme(tid) {
         <div class="kv" style="margin-top:10px"><span class="k">Confidence</span><span><div class="bar" style="width:180px;display:inline-block;vertical-align:middle"><span style="width:${rc.confidence * 100}%"></span></div> ${fx(rc.confidence)}</span>
         <span class="k">Suspected layer</span><span>${esc(t.layer)}</span>
         ${rc.change ? `<span class="k">Correlated change</span><span><span class="mono">${esc(rc.change.from)} → ${esc(rc.change.to)}</span></span>` : ''}</div></div>
-      <div class="panel"><h2>Daily occurrences</h2>${lineChart({ series: [{ name: 'Traces', color: '#FF304C', values: t.daily }], labels: t.daily.map((_, i) => `d${i}`), yFmt: v => num(v), yMin: 0, height: 170 })}</div>
+      <div class="panel"><h2>Daily occurrences</h2>${lineChart({ series: [{ name: 'Traces', color: '#EE0000', values: t.daily }], labels: t.daily.map((_, i) => `d${i}`), yFmt: v => num(v), yMin: 0, height: 170 })}</div>
       <div class="panel"><div class="panel-head"><h2>Evidence</h2><a href="#/traces?theme=${t.id}">All ${num(t.evidence_total)} traces</a></div>${traceTable(t.evidence)}</div>
     </div><div>
       <div class="panel"><h2>Sub-clusters</h2>${t.subclusters.map(s => `<div class="hbar"><div><div class="small">${esc(s.label)}</div><div class="bar"><span style="width:${s.share * 100}%"></span></div></div><div class="num small">${pct(s.share, 0)}</div></div>`).join('')}</div>
@@ -376,7 +413,7 @@ async function vFix(bid, fid) {
     </div><div>
       <div class="panel"><h2>Delivery</h2><p class="small muted">${esc(f.agent.name)} · ${esc(f.agent.integration)}</p>
         <div class="stack">${methods.map(([m, l]) => `<button class="btn" style="width:100%;justify-content:center" data-act="deliver" data-m="${m}">${l}</button>`).join('')}</div>
-        <div id="deliv" style="margin-top:12px"></div></div>
+        <div id="deliv" style="margin-top:12px">${f.pr ? `<div class="small"><b>Open pull request:</b> ${ext(f.pr.pr_url, `${esc(S.boot.git.repo)}#${f.pr.pr_number}`)} · branch ${ext(f.pr.branch_url, esc(f.pr.branch), 'mono')}</div>` : ''}</div></div>
       <div class="panel"><h2>Rollout plan</h2><ol class="small" style="padding-left:18px;margin:0">
         <li>Shadow traffic, 48 hours</li><li>Canary 5% → 25% → 50%</li><li>Full rollout</li></ol>
         <p class="small muted" style="margin-top:8px">Auto-rollback if resolution drops more than 1 pt or policy violations rise.</p></div>
@@ -387,11 +424,26 @@ async function vFix(bid, fid) {
   ACT.validate = btn => busy(btn, async () => { const r = await post(`/api/fix/${bid}/${fid}/validate`, { n: +$('#vn').value, sim_error: +$('#vs').value }); $('#val').innerHTML = validationHTML(r.validation); toast('Validation complete'); });
   ACT.deliver = el => busy(el, async () => {
     const r = await post(`/api/fix/${bid}/${fid}/deliver`, { method: el.dataset.m });
-    const body = r.patch ? `<div class="small"><b>${esc(r.title)}</b><br><span class="mono">${esc(r.target)} · ${esc(r.branch)}</span></div><pre class="code" style="margin-top:8px">${diffColor(r.patch)}</pre>`
-      : `<pre class="code">${esc(JSON.stringify(r.spec || r.payload || r.request || r.overlay, null, 2))}</pre>`;
-    $('#deliv').innerHTML = `<div class="small" style="margin-bottom:6px"><b>${esc(r.method)}</b> artifact generated · logged to audit</div>${body}`;
+    if (r.patch) { $('#deliv').innerHTML = prHTML(r); if (r.live) toast(r.pr_reused ? `PR #${r.pr_number} updated` : `PR #${r.pr_number} opened`); return; }
+    $('#deliv').innerHTML = `<div class="small" style="margin-bottom:6px"><b>${esc(r.method)}</b> artifact generated · logged to audit</div><pre class="code">${esc(JSON.stringify(r.spec || r.payload || r.request || r.overlay, null, 2))}</pre>`;
   });
   ACT.toappr = btn => busy(btn, async () => { const a = await post(`/api/fix/${bid}/${fid}/approve-request`); toast(`${a.id} routed to ${a.approvers.map(x => x.role).join(', ')}`); refreshBoot(); location.hash = `#/approvals/${a.id}`; });
+}
+const ext = (href, label, cls = '') => `<a href="${esc(href)}" target="_blank" rel="noopener" class="${cls}">${label}</a>`;
+function prHTML(r) {
+  const links = r.live
+    ? `<div class="kv small"><span class="k">Pull request</span><span>${ext(r.pr_url, `#${r.pr_number} ${esc(r.title)}`)}</span>
+        <span class="k">Branch</span><span>${ext(r.branch_url, esc(r.branch), 'mono')}</span>
+        <span class="k">Commits</span><span>${r.commits.length ? r.commits.map(c => `${ext(c.url, c.short, 'mono')} ${esc(c.message)}`).join('<br>') : 'No new commits: branch already up to date'}</span>
+        <span class="k">Files</span><span>${r.files.map(f => ext(r.file_urls[f], esc(f), 'mono')).join('<br>')}</span></div>`
+    : `<div class="alert warn small" style="margin-bottom:8px"><div>${esc(r.note)}</div></div>
+       <div class="kv small"><span class="k">Repository</span><span>${ext(r.repo_url, esc(r.repo), 'mono')}</span>
+        <span class="k">Branch</span><span class="mono">${esc(r.branch)} <span class="faint">(from ${esc(r.base)})</span></span>
+        <span class="k">Files</span><span class="mono">${r.files.map(esc).join('<br>')}</span>
+        <span class="k">After pushing</span><span>${ext(r.compare_url, 'Open the compare view')}</span></div>
+       <h3 style="margin:12px 0 6px">Do it by hand</h3><pre class="code">${esc(r.commands)}</pre>`;
+  return `<div class="small" style="margin-bottom:6px"><b>${r.live ? (r.pr_reused ? 'Pull request updated' : 'Pull request opened') : 'Pull request prepared'}</b> on ${ext(r.repo_url, esc(r.repo))} · logged to audit</div>
+    ${links}<h3 style="margin:12px 0 6px">Diff</h3><pre class="code">${diffColor(r.patch)}</pre>`;
 }
 const diffColor = t => esc(t).split('\n').map(l => l.startsWith('+++') || l.startsWith('---') || l.startsWith('@@') ? `<span class="hdr">${l}</span>` : l.startsWith('+') ? `<span class="add">${l}</span>` : l.startsWith('-') ? `<span class="del">${l}</span>` : l).join('\n');
 
@@ -466,7 +518,7 @@ async function vExperiments() {
   });
 }
 
-const COLORS = ['#8D88A0', '#0070AD', '#12ABDB', '#5A2A78', '#FF304C', '#178A55', '#C98500'];
+const COLORS = ['#9A9A9A', '#000000', '#EE0000', '#555555', '#A30000', '#00752F', '#A36A00'];
 async function vExperiment(eid) {
   const e = await api(`/api/experiment/${eid}`);
   crumbs([['Experiments', '#/experiments'], [e.id]]);
@@ -618,12 +670,12 @@ function rlBody(j) {
   const heldAt = it => held.find(h => h.it === it);
   const labels = cv.map(p => p.it);
   let out = `<h3 style="margin-bottom:6px">Training signal vs held-out outcome</h3>${lineChart({
-    series: [{ name: 'Train reward', color: '#0070AD', values: cv.map(p => p.reward) },
-      { name: 'Held-out judge resolution', color: '#12ABDB', values: labels.map(i => heldAt(i)?.resolution ?? null), dots: true },
-      { name: 'Held-out human audit', color: '#FF304C', values: labels.map(i => heldAt(i)?.gold ?? null), dots: true, dash: '5 4' }],
+    series: [{ name: 'Train reward', color: '#000000', values: cv.map(p => p.reward) },
+      { name: 'Held-out judge resolution', color: '#8A8A8A', values: labels.map(i => heldAt(i)?.resolution ?? null), dots: true },
+      { name: 'Held-out human audit', color: '#EE0000', values: labels.map(i => heldAt(i)?.gold ?? null), dots: true, dash: '5 4' }],
     labels, yFmt: v => fx(v, 2), height: 230 })}
-    <div class="grid-2" style="margin-top:10px"><div><h3 style="margin-bottom:6px">KL to reference</h3>${lineChart({ series: [{ name: 'KL', color: '#5A2A78', values: cv.map(p => p.kl) }], labels, yFmt: v => fx(v, 3), yMin: 0, height: 150 })}</div>
-    <div><h3 style="margin-bottom:6px">Detailed closing summaries</h3>${lineChart({ series: [{ name: 'Detailed', color: '#C98500', values: cv.map(p => p.detailed) }], labels, yMin: 0, height: 150 })}</div></div>`;
+    <div class="grid-2" style="margin-top:10px"><div><h3 style="margin-bottom:6px">KL to reference</h3>${lineChart({ series: [{ name: 'KL', color: '#555555', values: cv.map(p => p.kl) }], labels, yFmt: v => fx(v, 3), yMin: 0, height: 150 })}</div>
+    <div><h3 style="margin-bottom:6px">Detailed closing summaries</h3>${lineChart({ series: [{ name: 'Detailed', color: '#A30000', values: cv.map(p => p.detailed) }], labels, yMin: 0, height: 150 })}</div></div>`;
   if (j.result) {
     const r = j.result;
     if (r.warning) out += `<div class="alert warn" style="margin-top:12px">${esc(r.warning)}</div>`;
@@ -752,7 +804,7 @@ async function vEvaluators() {
       <button class="btn sm" data-act="recal" data-e="${e.id}" data-busy="Recalibrating…">Recalibrate</button></div>`).join('')}
     <div class="panel"><table><tr><th>Evaluator</th><th>Type</th><th class="num">Cohen's κ vs humans</th><th>Last 7 weeks</th><th>Status</th><th>Used as</th><th></th></tr>
       ${d.items.map(e => `<tr><td>${esc(e.name)}${e.criteria ? `<div class="small faint">${e.criteria.length} rubric criteria</div>` : ''}</td><td>${esc(e.type)}</td><td class="num">${e.kappa == null ? '<span class="faint">n/a</span>' : fx(e.kappa)}</td>
-        <td>${spark(e.history, e.status === 'Healthy' ? '#0070AD' : '#FF304C', 110, 26, d.threshold)}</td><td>${status(e.status)}</td><td>${esc(e.role)}</td>
+        <td>${spark(e.history, e.status === 'Healthy' ? '#000000' : '#EE0000', 110, 26, d.threshold)}</td><td>${status(e.status)}</td><td>${esc(e.role)}</td>
         <td>${e.kappa != null ? `<button class="btn sm ghost" data-act="recal" data-e="${e.id}" data-busy="…">Recalibrate</button>` : ''}</td></tr>`).join('')}</table></div>
     <div class="grid-2">
       <div class="panel"><h2>Calibration set</h2><div class="kv"><span class="k">Human-labeled sessions</span><span>${num(d.calibration.size)}</span>
@@ -789,7 +841,7 @@ async function vAgents() {
   const d = await api('/api/agents');
   page(`${head('Agents & connections', 'What the engine can do depends on how each agent is connected. Third-party agents get recommendations and vendor change requests; first-party agents can get pull requests and weight updates.')}
     <div class="panel"><table><tr><th>Agent</th><th>Type</th><th>Integration</th><th>Owner</th><th class="num">Traffic</th><th>Production</th><th class="num">Traces</th></tr>
-      ${d.items.map(a => `<tr><td>${esc(a.name)}${a.repo ? `<div class="small mono faint">${esc(a.repo)}</div>` : ''}${a.vendor ? `<div class="small faint">Vendor ${esc(a.vendor)}</div>` : ''}</td><td>${esc(a.type)}</td><td>${esc(a.integration)}</td><td>${esc(a.owner)}</td>
+      ${d.items.map(a => `<tr><td>${esc(a.name)}${a.repo ? `<div class="small mono">${a.repo_url ? ext(a.repo_url, esc(a.repo)) : esc(a.repo)}${a.repo_path ? ` <span class="faint">/${esc(a.repo_path)}</span>` : ''}</div>` : ''}${a.vendor ? `<div class="small faint">Vendor ${esc(a.vendor)}</div>` : ''}</td><td>${esc(a.type)}</td><td>${esc(a.integration)}</td><td>${esc(a.owner)}</td>
         <td class="num">${esc(a.traffic)}</td><td class="mono">${esc(a.production || '—')}</td><td class="num">${num(a.traces)}</td></tr>`).join('')}</table></div>
     <div class="grid-main"><div class="panel"><h2>Capability by integration level</h2><div class="table-wrap"><table><tr><th>Capability</th>${d.levels.map(l => `<th>${esc(l[1])}</th>`).join('')}</tr>
       ${d.capabilities.map(c => `<tr><td>${esc(c.name)}</td>${c.values.map(v => `<td>${v === 'Yes' ? '<span class="badge good">Yes</span>' : v === 'No' ? '<span class="badge">No</span>' : '<span class="badge warn">Partial</span>'}</td>`).join('')}</tr>`).join('')}</table></div></div>
@@ -821,17 +873,221 @@ async function vAudit() {
   ACT.verify = btn => busy(btn, async () => { const r = await api('/api/audit/verify'); $('#vres').innerHTML = `<div class="alert ${r.ok ? 'info' : 'bad'}">${r.ok ? `Chain intact: ${r.entries} entries, head <span class="mono">${r.head.slice(0, 16)}…</span>` : `Chain broken at entry ${r.broken_at}`}</div>`; });
 }
 
+/* ------------------------------------------------------------------ under the hood */
+const hoodSrc = files => `<div class="small faint" style="margin-top:10px">Source: ${files.map(f => `<span class="mono">${esc(f)}</span>`).join(', ')}</div>`;
+const steps = items => `<ol class="steps">${items.map(s => `<li>${s}</li>`).join('')}</ol>`;
+async function hoodData(section, title) {
+  crumbs([['Under the hood'], [title]]);
+  const a = S.boot.agents.find(x => x.id === S.agent);
+  if (!a.kind) { page(head(title) + observeOnly(a)); return null; }
+  return api(`/api/hood/${section}/${S.agent}`);
+}
+
+async function vHoodDetection() {
+  const d = await hoodData('detection', 'Detection'); if (!d) return;
+  const only = d.overlap.find(o => o.signals === 1)?.traces || 0;
+  const maxO = Math.max(...d.overlap.map(o => o.traces));
+  page(`${head('Detection', 'How a production session becomes a flagged trace. Six independent signals are ORed together, then each flagged trace is assigned to exactly one failure theme.')}
+    ${kpis([{ v: num(d.traces), l: 'Traces (14 days)' }, { v: num(d.flagged), l: 'Flagged' }, { v: pct(d.rate), l: 'Flag rate' }, { v: num(only), l: 'Caught by a single signal' }])}
+    <div class="panel"><h2>How it works</h2>${steps([
+      'Every trace is scored by the evaluators (LLM judges, policy rules, tool-sequence check) and joined with outcome data (repeat contact, CSAT) and any human flag.',
+      'A trace is flagged if <b>any</b> signal fires. No single signal is trusted alone: judges miss failures, outcomes arrive late, humans sample sparsely.',
+      'Flagged traces are matched against failure signatures in a fixed order. The first match wins, so a policy breach is never hidden inside a softer theme.',
+      'Anything with no shared signature lands in <i>Flagged with no clear pattern</i>, which is also where judge false positives collect.'])}
+      <pre class="code">flagged = (not judged_pass) or violation or repeat or anomaly or csat &lt;= 2 or human_flag</pre>
+      ${hoodSrc(['backend/engine/analysis.py · is_flagged, theme_of'])}</div>
+    <div class="grid-main">
+      <div class="panel"><h2>Signals</h2><table><tr><th>Signal</th><th>Condition</th><th class="num">Traces hit</th><th class="num">Only signal</th></tr>
+        ${d.signals.map(s => `<tr><td>${esc(s.label)}</td><td class="mono small">${esc(s.expr)}</td><td class="num">${num(s.hits)}</td><td class="num">${num(s.sole)}</td></tr>`).join('')}</table>
+        <p class="small muted" style="margin-top:10px"><b>Only signal</b> counts flagged traces that no other signal caught: what you would lose by dropping that signal.</p></div>
+      <div class="panel"><h2>Signal overlap</h2>${d.overlap.map(o => hbar(`${o.signals} signal${o.signals > 1 ? 's' : ''} fired`, o.traces, maxO)).join('')}</div>
+    </div>
+    <div class="panel"><h2>Theme assignment, first match wins</h2><table><tr><th>#</th><th>Theme</th><th>Layer</th><th class="num">Traces assigned</th></tr>
+      ${d.themes.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.name)}</td><td class="small">${esc(t.layer)}</td><td class="num">${num(t.assigned)}</td></tr>`).join('')}</table></div>`);
+}
+
+async function vHoodRootCause() {
+  const d = await hoodData('rootcause', 'Root cause'); if (!d) return;
+  page(`${head('Root cause', 'Each theme is traced back to the harness release where it started, by comparing its rate across versions.')}
+    <div class="panel"><h2>How it works</h2>${steps([
+      'For each theme, count its traces per harness version and divide by that version\'s total traffic. Raw counts would favour versions that ran longer.',
+      'Order versions by release day and find the largest rise in rate between two consecutive releases.',
+      'The edits made in that release become the hypothesis. A signature check adds the mechanism (for example close_ticket called within one turn of quote_credit).',
+      'Confidence scales with how much of the current rate the jump explains: <span class="mono">clamp(0.5 + 0.45 × jump ÷ rate_after, 0.35, 0.95)</span>. With a single version there is no jump, so confidence stays at the 0.55 prior.'])}
+      ${hoodSrc(['backend/engine/analysis.py · root_cause'])}</div>
+    ${d.themes.map(t => `<div class="panel"><div class="panel-head"><div><h2>${esc(t.name)}</h2><div class="small muted">${sevBadge(t.sev)} Confidence ${pct(t.confidence, 0)}</div></div>
+      <a class="btn sm ghost" href="#/themes/${t.id}">Open theme</a></div>
+      <table><tr><th>Version</th><th class="num">Released (day)</th><th class="num">Traces</th><th class="num">Theme traces</th><th class="num">Rate</th><th></th></tr>
+      ${t.rows.map(r => `<tr${t.change && r.version === t.change.to ? ' class="hl"' : ''}><td class="mono">${esc(r.version)}</td><td class="num">${r.released_day}</td><td class="num">${num(r.traces)}</td><td class="num">${num(r.hits)}</td><td class="num">${pct(r.rate)}</td>
+        <td class="small">${t.change && r.version === t.change.to ? `<span class="neg">${pts(t.jump)} vs ${esc(t.change.from)}</span>` : ''}</td></tr>`).join('')}</table>
+      ${t.change ? `<div class="small" style="margin-top:10px"><b>Changed in ${esc(t.change.to)}:</b> ${t.change.edits.map(esc).join('; ') || 'no harness edits'}</div>` : `<div class="small muted" style="margin-top:10px">${t.rows.length < 2 ? 'Only one version in the window, so no release can be blamed.' : 'No release raised the rate, so none is blamed.'} The hypothesis rests on the failure signature alone.</div>`}
+      <p class="small muted">${esc(t.text)}</p></div>`).join('') || `<div class="panel">${empty('No themes to explain yet.')}</div>`}`);
+}
+
+function histogram(h, res) {
+  const W = 560, H = 190, L = 12, R = 12, T = 10, B = 30, n = h.counts.length;
+  const max = Math.max(...h.counts, 1), bw = (W - L - R) / n;
+  const span = h.width * n, X = v => L + (W - L - R) * (v - h.lo) / (span || 1);
+  let g = h.counts.map((c, i) => { const v = h.lo + (i + .5) * h.width, inCI = v >= res.lo && v <= res.hi;
+    return `<rect x="${L + i * bw + 1}" y="${T + (H - T - B) * (1 - c / max)}" width="${bw - 2}" height="${(H - T - B) * c / max}" fill="${inCI ? '#000000' : '#D0D0D0'}"/>`; }).join('');
+  const mark = (v, label, color) => v >= h.lo && v <= h.lo + span ? `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" stroke="${color}" stroke-dasharray="4 3"/><text x="${X(v)}" y="${H - 14}" text-anchor="middle" style="fill:${color}">${label}</text>` : '';
+  g += mark(0, '0', '#EE0000') + mark(res.lo, pts(res.lo), '#EE0000') + mark(res.hi, pts(res.hi), '#EE0000');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bootstrap distribution of the difference">${g}</svg>`;
+}
+
+async function vHoodStatistics() {
+  const d = await hoodData('statistics', 'Statistics'); if (!d) return;
+  const metric = S.query.get('m') === 'gold' ? 'gold' : 'judged_pass';
+  const m = d.metrics?.[metric], r = m?.result;
+  page(`${head('Statistics', 'How the engine decides a change really helped: paired replays, a bootstrap confidence interval, and a multiple-comparison correction.')}
+    <div class="panel"><h2>How it works</h2>${steps([
+      '<b>Paired replays.</b> Baseline and candidate run the same scenarios with the same random draws (common random numbers). Transcripts stay identical until a decision actually changes, so most pairs cancel out and the noise drops sharply.',
+      '<b>Paired bootstrap.</b> Take the per-scenario differences (candidate minus baseline), resample them with replacement B times and take the mean each time. The 2.5th and 97.5th percentiles give the 95% interval, and the share of resamples on the wrong side of zero gives the p-value.',
+      '<b>Holm correction.</b> When one experiment compares several candidates, sort their p-values and multiply the k-th smallest by (m − k + 1), keeping the sequence monotone. A candidate is significant only if its adjusted p &lt; 0.05 <i>and</i> its interval sits above zero.',
+      '<b>Judge vs human audit.</b> The same test runs on the judge verdict and on the human-audited outcome. If they disagree, the judge is the problem, not the fix.'])}
+      ${hoodSrc(['backend/engine/evaluate.py · paired_bootstrap, holm, kappa'])}</div>
+    ${d.cand ? `<div class="panel"><div class="panel-head"><div><h2>Live example: ${esc(d.base)} vs ${esc(d.cand)}</h2><div class="small muted">${d.edits.map(esc).join('; ')} · n = ${num(d.n)} paired scenarios · B = ${d.B} resamples</div></div>
+        <div class="seg">${[['judged_pass', 'Judge verdict'], ['gold', 'Human audit']].map(([k, l]) => `<button class="${k === metric ? 'on' : ''}" data-act="metric" data-m="${k}">${l}</button>`).join('')}</div></div>
+      ${kpis([{ v: `<span class="${cls(r.diff)}">${pts(r.diff)}</span>`, l: 'Mean difference' }, { v: `${pts(r.lo)} to ${pts(r.hi)}`, l: '95% interval' }, { v: fx(r.p, 3), l: 'Bootstrap p-value' }, { v: num(m.pairs.gained + m.pairs.lost), l: 'Pairs that changed' }])}
+      <div class="grid-2"><div>${histogram(m.hist, r)}<div class="small muted">Bootstrap distribution of the mean difference. Dark bars fall inside the 95% interval; the red line is zero.</div></div>
+        <div><table><tr><th></th><th class="num">Candidate pass</th><th class="num">Candidate fail</th></tr>
+          <tr><th>Baseline pass</th><td class="num">${num(m.pairs.both_pass)}</td><td class="num neg">${num(m.pairs.lost)}</td></tr>
+          <tr><th>Baseline fail</th><td class="num pos">${num(m.pairs.gained)}</td><td class="num">${num(m.pairs.both_fail)}</td></tr></table>
+          <p class="small muted" style="margin-top:10px">Only the off-diagonal pairs carry information. The difference is (${m.pairs.gained} − ${m.pairs.lost}) ÷ ${d.n} = ${pts(r.diff)}.</p></div></div></div>`
+      : `<div class="panel">${empty('No candidate harness derived from production yet. Generate a fix bundle to see a live example.')}</div>`}
+    ${d.holm ? `<div class="panel"><div class="panel-head"><h2>Holm correction in ${esc(d.holm.id)}</h2><a class="btn sm ghost" href="#/experiments/${d.holm.id}">Open experiment</a></div>
+      <table><tr><th>Candidate</th><th class="num">Lift</th><th class="num">95% interval</th><th class="num">Raw p</th><th class="num">Holm p</th><th>Significant</th></tr>
+      ${d.holm.rows.map(x => `<tr><td>${esc(x.name)}</td><td class="num ${cls(x.diff)}">${pts(x.diff)}</td><td class="num small">${pts(x.lo)} to ${pts(x.hi)}</td><td class="num">${fx(x.p, 3)}</td><td class="num">${fx(x.p_holm, 3)}</td>
+        <td>${x.significant ? '<span class="badge good">Yes</span>' : '<span class="badge">No</span>'}</td></tr>`).join('')}</table></div>` : ''}`);
+  ACT.metric = el => { location.hash = `#/statistics${el.dataset.m === 'gold' ? '?m=gold' : ''}`; };
+}
+
+async function vHoodJudges() {
+  const d = await hoodData('judges', 'Judges'); if (!d) return;
+  const c = d.confusion, p = d.params, b = d.bias;
+  const best = (b.criteria - 1) / b.criteria + p.verbosity_bias, canFlip = best >= p.threshold;
+  page(`${head('Judges', 'How the resolution judge scores a session, where it is wrong, and how agreement with humans is measured.')}
+    <div class="panel"><h2>How it works</h2>${steps([
+      'The judge checks each rubric criterion. A criterion that truly holds is scored as met unless the judge <b>false-fails</b> it; one that does not hold is scored as met only when the judge <b>misses</b> it.',
+      `Score = share of criteria met, plus a <b>verbosity bonus</b> of ${fx(p.verbosity_bias)} when the agent ends with a detailed summary, plus Gaussian noise (σ ${fx(p.noise)}). The session passes at score ≥ ${fx(p.threshold)}.`,
+      'The verbosity bonus is deliberate: it is the flaw an optimizer can learn to exploit (reward hacking). Human-audited outcomes expose it.',
+      `Agreement with human labels is measured with Cohen's κ on the calibration set. Below κ ${fx(d.threshold)} the judge stops being used as an optimization reward until it is recalibrated.`])}
+      ${hoodSrc(['backend/engine/judges.py · resolution', 'backend/engine/evaluate.py · kappa'])}</div>
+    <div class="grid-2">
+      <div class="panel"><h2>Resolution judge settings</h2><div class="kv">
+        <span class="k">Miss rate</span><span>${pct(p.miss)}</span><span class="k">False-fail rate</span><span>${pct(p.false_fail)}</span>
+        <span class="k">Score noise σ</span><span>${fx(p.noise)}</span><span class="k">Verbosity bonus</span><span>+${fx(p.verbosity_bias)}</span>
+        <span class="k">Pass threshold</span><span>${fx(p.threshold)}</span></div>
+        <h3 style="margin-top:14px">Rubric</h3><ul class="small" style="margin:0;padding-left:18px">${d.criteria.map(x => `<li>${esc(x.text)} <span class="mono faint">${esc(x.id)}</span></li>`).join('')}</ul></div>
+      <div class="panel"><h2>Agreement with humans (n = ${num(d.n)})</h2>
+        <table><tr><th></th><th class="num">Human: resolved</th><th class="num">Human: not resolved</th></tr>
+          <tr><th>Judge: pass</th><td class="num">${num(c.tp)}</td><td class="num neg">${num(c.fp)}</td></tr>
+          <tr><th>Judge: fail</th><td class="num neg">${num(c.fn)}</td><td class="num">${num(c.tn)}</td></tr></table>
+        <div class="kv" style="margin-top:12px"><span class="k">Observed agreement p<sub>o</sub></span><span>${fx(d.po, 3)}</span>
+          <span class="k">Chance agreement p<sub>e</sub></span><span>${fx(d.pe, 3)}</span>
+          <span class="k">κ = (p<sub>o</sub> − p<sub>e</sub>) ÷ (1 − p<sub>e</sub>)</span><span><b>${fx(d.kappa, 3)}</b> ${d.kappa >= d.threshold ? '<span class="badge good">Above threshold</span>' : '<span class="badge bad">Below threshold</span>'}</span></div></div>
+    </div>
+    <div class="panel"><h2>What the verbosity bonus costs</h2>
+      <p class="small muted">The ${num(b.unresolved)} calibration sessions that humans say were <b>not</b> resolved, scored twice by the same judge: once as configured, once with the bonus switched off.</p>
+      <div class="kv"><span class="k">Mean judge score, unresolved sessions with a detailed summary (n = ${num(b.detailed)})</span><span>${fx(b.score_on, 3)} → <b>${fx(b.score_off, 3)}</b> without the bonus</span>
+        <span class="k">False passes (judge pass, human says not resolved)</span><span>${num(b.false_pass)} → <b>${num(b.false_pass_no_bonus)}</b> without the bonus</span></div>
+      <p class="small" style="margin-top:10px">${canFlip
+        ? `<b>${num(b.bonus_only)}</b> unresolved sessions pass only because of the bonus. With ${b.criteria} criteria, one missed criterion plus the bonus scores ${fx(best, 2)}, over the ${fx(p.threshold)} threshold.`
+        : `With ${b.criteria} criteria, one missed criterion plus the bonus scores at most ${fx(best, 2)}, below the ${fx(p.threshold)} threshold, so the bonus never flips a verdict here.`}
+        It still inflates the <b>score</b>, and RL uses the score as its reward. That is enough for a policy to learn longer closings without resolving anything.</p></div>
+    <div class="panel"><div class="panel-head"><h2>All evaluators</h2><a class="btn sm ghost" href="#/evaluators">Evaluator health</a></div>
+      <table><tr><th>Evaluator</th><th>Type</th><th class="num">κ</th><th>Status</th><th>Used as</th></tr>
+      ${d.evaluators.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.type)}</td><td class="num">${e.kappa == null ? '<span class="faint">n/a</span>' : fx(e.kappa)}</td><td>${status(e.status)}</td><td>${esc(e.role)}</td></tr>`).join('')}</table></div>`);
+}
+
+async function vHoodRelease() {
+  const d = await hoodData('release', 'Release'); if (!d) return;
+  const g = d.gate;
+  page(`${head('Release', 'How a validated change reaches production: routed approvals, a regression gate, then a staged rollout that rolls itself back.')}
+    <div class="panel"><h2>How it works</h2>${steps([
+      'The change is classified by the riskiest layer it touches (prompt, tools, control flow, evaluator, guardrail, model weights). That class decides who must approve.',
+      `Third-party agents also need vendor attestation that the deployed version matches the approved <a href="#/manifest">manifest hash</a>.${d.third_party ? ' <b>This agent is third-party.</b>' : ''}`,
+      'Before approval, the candidate runs the regression suite. It must clear the pass-rate gate, and every policy test must pass.',
+      `Once all approvers sign off, each rollout stage replays fresh scenarios against production. A stage <b>rolls back automatically</b> if resolution drops by more than ${fx(d.rollback.resolution_drop * 100, 1)} pts or the violation rate rises by more than ${fx(d.rollback.violation_rise * 100, 1)} pts.`,
+      'Passing the last stage promotes the candidate to production, bumps the version and adds the fix to the pattern library. Every step is written to the audit log.'])}
+      ${hoodSrc(['backend/state.py · route, run_suite, advance, promote_to_prod'])}</div>
+    <div class="panel"><h2>Approval routing</h2><table><tr><th>Change type</th><th>Approvers</th><th>Rollout</th></tr>
+      ${d.policy.map(p => `<tr><td>${esc(p.type)}</td><td>${p.approvers.map(a => `<span class="badge purple">${esc(a)}</span>`).join(' ')}</td><td class="small">${esc(p.rollout)}</td></tr>`).join('')}</table></div>
+    <div class="grid-2">
+      <div class="panel"><h2>Rollout stages</h2><table><tr><th>#</th><th>Stage</th><th class="num">Replayed scenarios</th></tr>
+        ${d.stages.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.name)}</td><td class="num">${num(s.n)}</td></tr>`).join('')}</table></div>
+      <div class="panel"><h2>Regression gate</h2>${g ? `<div class="kv"><span class="k">Suite</span><span class="mono">${esc(g.suite)}</span><span class="k">Tests</span><span>${num(g.tests)}</span>
+        <span class="k">Minimum pass rate</span><span>${pct(g.min_pass, 0)}</span><span class="k">All policy tests must pass</span><span>${g.policy_all ? 'Yes' : 'No'}</span>
+        <span class="k">Changing the gate</span><span>${g.gov_signoff ? 'Requires AI Governance sign-off' : 'Owner'}</span>
+        <span class="k">Last run</span><span>${g.last_run ? `${esc(g.last_run.name)}: ${g.last_run.passed}/${g.last_run.total} ${g.last_run.gate_ok ? status('Passed') : status('failed')}` : '<span class="faint">None</span>'}</span></div>
+        <a class="btn sm ghost" href="#/regression" style="margin-top:8px">Regression suites</a>` : empty('No regression suite for this agent.')}</div>
+    </div>
+    <div class="panel"><h2>Changes for this agent</h2>${d.approvals.length ? `<table><tr><th>Change</th><th>Type</th><th>Risk</th><th>Status</th><th>Progress</th></tr>
+      ${d.approvals.map(a => `<tr class="click" data-href="#/approvals/${a.id}"><td><span class="mono small">${a.id}</span> ${esc(a.title)}</td><td class="small">${esc(a.change_type)}</td><td>${sevBadge(a.risk)}</td><td>${status(a.status)}</td>
+        <td class="small">${a.waiting_on ? `Waiting on ${esc(a.waiting_on)}` : a.stage != null && a.stage >= 0 ? `Stage ${a.stage + 1} of ${d.stages.length} passed` : a.stage === -1 ? 'Ready for shadow' : ''}</td></tr>`).join('')}</table>` : empty('No changes routed yet.')}</div>`);
+}
+
+async function vHoodManifest() {
+  const d = await hoodData('manifest', 'Manifest hash'); if (!d) return;
+  const short = h => `${h.slice(0, 12)}…`;
+  page(`${head('Manifest hash', 'A content fingerprint for every harness version, so approvers, auditors and vendors can prove exactly which harness is running.')}
+    <div class="panel"><h2>How it works</h2>${steps([
+      'Each harness is written out as a canonical manifest: prompt lines (full text, with frozen markers), gates, tool descriptions, evaluator criteria and a SHA-256 of any RL adapter weights.',
+      'Names and version labels are left out on purpose. Two harnesses with identical behaviour get the same hash, and a renamed copy cannot pass as a new version.',
+      'The manifest is serialised as JSON with sorted keys and no whitespace, then hashed with SHA-256.',
+      'A second hash covers only the frozen policy lines. If it is the same across every version, no edit has touched identity or credit policy.',
+      'Third-party vendors attest to the hash they deployed. Paste it below to check it against every known version.'])}
+      ${hoodSrc(['backend/hood.py · manifest, manifest_hash, frozen_hash'])}</div>
+    <div class="alert ${d.frozen_ok ? 'info' : 'bad'}"><div>${d.frozen_ok ? 'Frozen policy lines are identical in every version of this agent.' : 'Frozen policy lines differ between versions. Investigate before approving anything.'}</div></div>
+    <div class="panel"><h2>Versions</h2><div class="table-wrap"><table><tr><th>Harness</th><th>Version</th><th>Parent</th><th>Manifest hash</th><th>Frozen-lines hash</th><th></th></tr>
+      ${d.items.map(r => `<tr><td>${esc(r.name)}</td><td class="mono">${esc(r.version)}</td><td class="mono small faint">${esc(r.parent || '—')}</td>
+        <td class="mono small" title="${r.hash}">${short(r.hash)}</td><td class="mono small faint" title="${r.frozen}">${short(r.frozen)}</td>
+        <td class="nowrap">${r.production ? status('Live') : ''} ${r.released && !r.production ? '<span class="badge">Released</span>' : ''} ${r.has_adapter ? '<span class="badge purple">Adapter</span>' : ''} ${r.shared ? '<span class="badge warn" title="Another harness has identical content">Same content</span>' : ''}</td></tr>`).join('')}</table></div></div>
+    <div class="panel"><h2>Verify a hash</h2><div class="actions"><input type="text" id="mh" class="mono" placeholder="Paste a manifest hash (8+ characters)" style="min-width:420px">
+      <button class="btn" data-act="mverify" data-busy="Checking…">Verify</button></div><div id="mres" style="margin-top:12px"></div></div>
+    ${d.production ? `<div class="panel"><div class="panel-head"><h2>Production manifest</h2><span class="mono small">sha256 ${esc(d.production.hash)}</span></div>
+      <pre class="code">${esc(JSON.stringify(d.production.manifest, null, 2))}</pre></div>` : ''}`);
+  ACT.mverify = btn => busy(btn, async () => {
+    const r = await post(`/api/hood/manifest/${S.agent}/verify`, { hash: $('#mh').value });
+    $('#mres').innerHTML = r.match ? `<div class="alert info"><div>Matches ${r.items.map(i => `<b>${esc(i.name)}</b> (${esc(i.version)})${i.production ? ', the harness in production' : ''}`).join('; ')}.</div></div>`
+      : '<div class="alert bad"><div>No harness for this agent has that hash. The deployed configuration differs from every approved version.</div></div>';
+  });
+}
+
 /* ================================================================== shell */
 const NAV = [['overview', 'Overview'], ['themes', 'Failure themes'], ['fixes', 'Fix bundles'], ['approvals', 'Approvals'], ['experiments', 'Experiments'],
   ['optimizer', 'Optimizer & RL'], ['sep'], ['regression', 'Regression suites'], ['traces', 'Evidence explorer'], ['evaluators', 'Evaluator health'],
-  ['patterns', 'Pattern library'], ['agents', 'Agents & connections'], ['audit', 'Audit log']];
+  ['patterns', 'Pattern library'], ['agents', 'Agents & connections'], ['audit', 'Audit log'],
+  ['label', 'Under the hood'], ['detection', 'Detection'], ['rootcause', 'Root cause'], ['statistics', 'Statistics'], ['judges', 'Judges'],
+  ['release', 'Release'], ['manifest', 'Manifest hash']];
 const ROUTES = [[/^overview$/, vOverview], [/^themes$/, vThemes], [/^themes\/(.+)$/, vTheme], [/^fixes$/, vFixes], [/^fixes\/([^/]+)\/([^/]+)$/, vFix],
   [/^approvals$/, vApprovals], [/^approvals\/(.+)$/, vApproval], [/^experiments$/, vExperiments], [/^experiments\/(.+)$/, vExperiment],
   [/^optimizer$/, vOptimizer], [/^regression$/, vRegression], [/^traces$/, vTraces], [/^traces\/(.+)$/, vTrace], [/^evaluators$/, vEvaluators],
-  [/^patterns$/, vPatterns], [/^agents$/, vAgents], [/^audit$/, vAudit]];
+  [/^patterns$/, vPatterns], [/^agents$/, vAgents], [/^audit$/, vAudit], [/^detection$/, vHoodDetection], [/^rootcause$/, vHoodRootCause],
+  [/^statistics$/, vHoodStatistics], [/^judges$/, vHoodJudges], [/^release$/, vHoodRelease], [/^manifest$/, vHoodManifest]];
+
+const HOOD_KEYS = ['detection', 'rootcause', 'statistics', 'judges', 'release', 'manifest'];
+const TOP_LABEL = { optimizer: 'Optimizer', regression: 'Regression', traces: 'Evidence', evaluators: 'Evaluators', patterns: 'Patterns', agents: 'Agents' };
+function renderTopNav(section) {
+  const items = NAV.filter(([k]) => k !== 'sep' && k !== 'label' && !HOOD_KEYS.includes(k)).map(([k, l]) => [k, TOP_LABEL[k] || l])
+    .concat([['detection', 'Under the hood']]);
+  $('#topnav').innerHTML = items.map(([k, l], i) => {
+    const on = k === section || (k === 'detection' && HOOD_KEYS.includes(section));
+    return `<li><a href="#/${k}" class="${on ? 'active' : ''}" ${on ? 'aria-current="page"' : ''}><span class="n">${i + 1}</span> ${l}${k === 'approvals' && S.boot?.waiting ? `<span class="count">${S.boot.waiting}</span>` : ''}</a></li>`;
+  }).join('');
+  const reveal = () => {  // scroll only the tab strip, never the page
+    const ul = $('#topnav'), a = $('#topnav a.active');
+    if (!a) return;
+    const l = a.offsetLeft - ul.offsetLeft, r = l + a.offsetWidth;
+    if (l < ul.scrollLeft) ul.scrollLeft = l - 8; else if (r > ul.scrollLeft + ul.clientWidth) ul.scrollLeft = r - ul.clientWidth + 8;
+  };
+  reveal(); document.fonts?.ready.then(reveal);
+}
 
 function renderNav(section) {
+  renderTopNav(section);
   $('#nav').innerHTML = NAV.map(([k, l]) => k === 'sep' ? '<li class="sep" role="separator"></li>'
+    : k === 'label' ? `<li class="sep" role="separator"></li><li class="nav-label">${l}</li>`
     : `<li><a href="#/${k}" class="${k === section ? 'active' : ''}" ${k === section ? 'aria-current="page"' : ''}><span>${l}</span>${k === 'approvals' && S.boot?.waiting ? `<span class="count">${S.boot.waiting}</span>` : ''}</a></li>`).join('');
 }
 
@@ -858,7 +1114,8 @@ async function refreshBoot() {
   S.boot = await api('/api/bootstrap');
   const sel = $('#agent');
   sel.innerHTML = S.boot.agents.map(a => `<option value="${a.id}" ${a.id === S.agent ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
-  $('#llm-state').textContent = S.boot.llm ? 'LLM proposer: connected' : 'LLM proposer: off (simulation only)';
+  $('#llm-state').innerHTML = `${S.boot.llm ? 'LLM proposer: connected' : 'LLM proposer: off (simulation only)'}<br>
+    GitHub: ${ext(S.boot.git.url, esc(S.boot.git.repo))} · ${S.boot.git.live ? 'live PRs' : 'dry run'}`;
   renderNav((location.hash.replace(/^#\/?/, '').split(/[/?]/)[0]) || 'overview');
 }
 
