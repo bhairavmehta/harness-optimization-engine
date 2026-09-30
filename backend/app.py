@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import hood, journey, state as st
+from . import flow, hood, journey, state as st
 from .engine import env, harness as H, jobs, llm, vcs
 
 app = FastAPI(title="Harness Optimization Engine", version="1.0")
@@ -19,6 +19,15 @@ FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 @app.on_event("startup")
 def _startup():
     st.seed()
+
+
+@app.middleware("http")
+async def _revalidate_frontend(request, call_next):
+    # without this, browsers reuse a stale app.js after an update and new tabs don't appear
+    resp = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.exception_handler(Exception)
@@ -373,6 +382,15 @@ def journey_view(tid: str):
     out = locked(journey.journey, tid)
     journey.git_commits(out["git"])  # network I/O: deliberately outside st.LOCK
     return out
+
+
+# ------------------------------------------------------------------ core flow
+@app.get("/api/flow/{tid}")
+def flow_view(tid: str):
+    if tid not in st.S["traces"]:
+        raise HTTPException(404, f"No trace {tid}")
+    out = locked(flow.flow, tid)
+    return flow.attach_git(out)  # network I/O: deliberately outside st.LOCK
 
 
 # ------------------------------------------------------------------ version control
