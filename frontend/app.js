@@ -1211,6 +1211,7 @@ async function vIntro() {
     optimizer: 'Reflective harness search and RL fine-tuning (GRPO, REINFORCE, DPO) with live curves.', regression: 'Themes turned into tests; suite runs and the release gate.',
     release: 'How approval routing, the regression gate and rollout stages decide what ships.', judges: 'How the resolution judge scores, where it is wrong, and Cohen\'s κ against humans.',
     traces: 'Every trace: transcript, spans, evaluator verdicts, decisions, human labels and replay.',
+    flow: 'Take one trace through the eight steps of the core workflow, with the GitHub revision behind each step.',
     journey: 'Search any trace and follow it through every revision: transcript, tool calls, verdicts, approvals and GitHub.', evaluators: 'Judge agreement with humans, weekly drift, auto-pause and recalibration.',
     patterns: 'Proven fixes packaged for other agents with the same failure signature.', agents: 'Connected agents, integration levels and what each level allows.',
     audit: 'Append-only, SHA-256 hash-chained record of every action.', manifest: 'Content fingerprints for every harness version, for attestation.',
@@ -1306,10 +1307,10 @@ function jStage(sg, i, base) {
   </div></div>`;
 }
 
-function jResults(items, q) {
+function jResults(items, q, base = 'journey') {
   if (!items.length) return empty('No traces match.');
   return `<table><tr><th>Trace</th><th>When</th><th>Harness</th><th>Scenario</th><th>Customer</th><th>Theme</th><th>Outcome</th></tr>
-    ${items.map(t => `<tr class="click" data-href="#/journey/${t.id}${q ? `?q=${encodeURIComponent(q)}` : ''}"><td class="mono small"><a href="#/journey/${t.id}">${t.id}</a></td><td class="small nowrap">${esc(t.date)} ${esc(t.time)}</td>
+    ${items.map(t => `<tr class="click" data-href="#/${base}/${t.id}${q ? `?q=${encodeURIComponent(q)}` : ''}"><td class="mono small"><a href="#/${base}/${t.id}">${t.id}</a></td><td class="small nowrap">${esc(t.date)} ${esc(t.time)}</td>
       <td class="mono small">${esc(t.version)}</td><td class="small">${esc(t.label)}${t.why ? `<div class="pos small">${esc(t.why)}</div>` : ''}</td><td class="small muted">“${esc(t.snippet.slice(0, 60))}”</td>
       <td class="small">${t.theme ? esc(t.theme) : '<span class="faint">—</span>'}</td><td>${t.resolved ? '<span class="badge good">Resolved</span>' : '<span class="badge bad">Not resolved</span>'}</td></tr>`).join('')}</table>`;
 }
@@ -1363,8 +1364,153 @@ async function vJourney(tid) {
   onEnter();
 }
 
+/* ------------------------------------------------------------------ core flow: one trace through the eight steps */
+const F_STATUS = { done: ['good', 'Done'], active: ['warn', 'In progress'], blocked: ['bad', 'Blocked'], pending: ['', 'Not yet'], skipped: ['', 'Skipped'], stop: ['info', 'Not flagged'] };
+const okBadge = (ok, yes, no) => `<span class="badge ${ok ? 'good' : 'bad'}">${ok ? yes : no}</span>`;
+const fname = p => p.split('/').pop();
+const traceVerdict = (v, resolved) => `<span class="badge ${J_VERDICT[v] ?? ''}">${esc(v)}</span> ${resolved ? '<span class="small pos">resolved</span>' : '<span class="small neg">not resolved</span>'}`;
+
+// GitHub links for a step: the code that implements it (pinned to the commit that last changed it on main),
+// then this trace's own harness revisions (fix branch, PR, files and commits), or where they will appear
+function fCode(s, compact) {
+  const revs = s.code_revisions || s.code.map(p => ({ path: p, url: `${S.boot.git.url}/blob/main/${p}` }));
+  return revs.map(r => `<div class="frev">${ext(r.url, `<span class="mono">${esc(fname(r.path))}</span>`)}${r.sha ? ` @ ${ext(r.commit_url, r.sha, 'mono')}` : ''}
+    ${compact ? '' : r.sha ? ` <span class="faint">${esc(r.message)} · ${esc(r.date)}</span> · ${ext(r.history_url, 'history')}` : r.error ? ' <span class="faint">(GitHub unreachable, showing main)</span>' : ''}</div>`).join('');
+}
+function fRevs(s, limit = 99) {
+  const rows = s.revisions.slice(0, limit).map(r => r.url
+    ? `<div class="frev k-${r.kind}">${ext(r.url, esc(r.label), r.kind === 'commit' || r.kind === 'branch' || r.kind === 'file' ? 'mono' : '')}</div>`
+    : `<div class="frev faint">${esc(r.label)}${r.planned ? ' <span class="badge">planned</span>' : ''}${r.note && limit > 10 ? `<div class="small">${esc(r.note)}</div>` : ''}</div>`);
+  if (s.revisions.length > limit) rows.push(`<div class="frev"><a href="#" data-act="fgo" data-n="${s.n}">+${s.revisions.length - limit} more</a></div>`);
+  return rows.join('');
+}
+
+function fStrip(d) {
+  return `<div class="fstrip-wrap"><div class="fstrip">${d.steps.map(s => {
+    const [c, l] = F_STATUS[s.status];
+    return `<div class="fcol"><div class="fstep">Step ${s.n}</div>
+      <a class="fbox st-${s.status}" href="#" data-act="fgo" data-n="${s.n}"><b>${esc(s.name)}${s.n === 4 ? '*' : ''}</b><span class="badge ${c}">${l}</span></a>
+      <div class="fhead small">${esc(s.headline)}</div>
+      <div class="fgit small"><div class="fgit-h">GitHub</div>${fCode(s, true)}${fRevs(s, 2)}</div></div>`;
+  }).join('')}</div>
+  <div class="small muted fnote-row">*Step 4 covers harness optimization and RL optimization (PPO · DPO · GRPO). A failed regression gate at step 7 sends the candidate back to step 5.</div></div>`;
+}
+
+function fDetail(s, d) {
+  const t = d.trace;
+  switch (s.key) {
+    case 'failed': return `
+      <div class="chips" style="margin-bottom:10px">${s.signals.map(g => `<span class="badge ${g.hit ? 'bad' : ''}">${g.hit ? '● ' : ''}${esc(g.label)}</span>`).join('')}</div>
+      ${jOutcome(s.outcome)}
+      <div class="kv small" style="margin-top:10px"><span class="k">Harness</span><span class="mono">${esc(s.harness.version)} · manifest <a href="#/manifest">${esc(s.harness.manifest)}</a></span>
+        <span class="k">Human label</span><span>${s.human_label ? esc(s.human_label) : '<span class="faint">none yet</span>'}</span>
+        <span class="k">Judge rationale</span><span>${esc(s.outcome.judge_rationale)}</span></div>
+      <h4 class="jh">Tool calls</h4>${toolFlow(s.tools, null)}
+      <details class="jtx"><summary>Transcript</summary><div class="msgs" style="margin-top:10px;max-width:680px">${s.messages.map(m => msgHTML(m)).join('')}</div></details>`;
+    case 'themes': if (!s.theme) return `<p class="small muted">${esc(s.headline)}. The trace stays in production traffic and still serves as a check at steps 4 to 8: no revision should break it.</p>`;
+      return `<div class="kv small"><span class="k">Theme</span><span><a href="#/themes/${s.theme.id}">${esc(s.theme.name)}</a> ${sevBadge(s.theme.sev)}</span>
+        <span class="k">Size</span><span>${num(s.theme.traces)} traces · ${pct(s.theme.share)} of flagged · trend <span class="${cls(s.theme.trend)}">${sign(s.theme.trend * 100)}%</span> week on week${s.theme.first_seen ? ` · first seen ${esc(s.theme.first_seen)}` : ''}</span>
+        <span class="k">This trace's sub-cluster</span><span>${esc(s.theme.subcluster)}${s.theme.sub_share != null ? ` (${pct(s.theme.sub_share, 0)} of the theme)` : ''}</span>
+        <span class="k">Layer</span><span>${esc(s.theme.layer)}</span><span class="k">Description</span><span>${esc(s.theme.desc)}</span></div>
+      <h4 class="jh">Verizon lookup table</h4><table class="small"><tr><th>Failure signature</th><th>Business meaning</th><th>KPI affected</th></tr>
+        <tr><td class="mono">${esc(s.lookup.signature)}</td><td>${esc(s.lookup.meaning)}</td><td>${esc(s.lookup.kpi)}</td></tr></table>`;
+    case 'rca': if (!s.category) return `<p class="small muted">${esc(s.headline)}.</p>`;
+      return `<div class="kv small"><span class="k">RCA category</span><span><b>${esc(s.category)}</b> · layer ${esc(s.layers.join(', '))}</span>
+        <span class="k">Root cause</span><span>${esc(s.root_cause)}</span>
+        <span class="k">Confidence</span><span>${pct(s.confidence, 0)}</span>
+        ${s.release ? `<span class="k">Release that started it</span><span class="mono">${esc(s.release.from)} → ${esc(s.release.to)} (day ${s.release.day})${s.release.this_trace ? ' <span class="badge warn">this trace ran on it</span>' : ''}</span>
+          <span class="k">Edits in that release</span><span>${s.release.edits.map(esc).join('; ') || '—'}</span>` : ''}</div>
+      <h4 class="jh">Verizon policy doc: frozen lines</h4><ul class="small jlist">${s.frozen.map(l => `<li>🔒 ${esc(l.text)}</li>`).join('')}</ul>
+      <p class="small muted" style="margin:4px 0 0">No proposed fix may edit these lines. Their hash is checked on the <a href="#/manifest">Manifest hash</a> page.</p>`;
+    case 'bundles': {
+      const row = f => `<tr><td class="nowrap"><a href="#/fixes/${f.bundle}/${f.id}">${f.bundle} · ${f.id}</a></td><td class="small">${esc(f.title)}<div class="faint">${esc(f.layer)} · ${esc(f.risk)} risk · ${status(f.status)}</div></td>
+        <td class="small nowrap">${f.lift ? `<b class="${cls(f.lift.diff)}">${pts(f.lift.diff)}</b><div class="faint">${pts(f.lift.lo)} to ${pts(f.lift.hi)}</div>` : '<span class="faint">evaluator only</span>'}</td>
+        <td class="small">${traceVerdict(f.verdict, f.resolved)}${f.changed.length ? `<div class="faint">${f.changed.map(c => `${esc(c.decision)}: ${esc(c.before)} → ${esc(c.after)}`).join('<br>')}</div>` : ''}</td></tr>`;
+      const head_ = '<tr><th>Fix</th><th>Change</th><th>Replay lift (n=600)</th><th>This trace, replayed</th></tr>';
+      return `${s.fixes.length ? `<h4 class="jh">Harness optimization: bundle ${esc(s.bundle)}</h4><div class="table-wrap"><table>${head_}${s.fixes.map(row).join('')}</table></div>` : ''}
+        ${s.other_fixes.length ? `<h4 class="jh">Fixes from other bundles that change this trace</h4><div class="table-wrap"><table>${head_}${s.other_fixes.map(row).join('')}</table></div>` : ''}
+        ${s.rl.length ? `<h4 class="jh">RL optimization (adapter on the decision logits)</h4><table>${s.rl.map(r => `<tr><td class="small">${esc(r.name)}</td><td class="small">${traceVerdict(r.verdict, r.resolved)} · judge ${r.judge_pass ? 'pass' : 'fail'}</td></tr>`).join('')}</table>` : ''}
+        ${s.optimizer.length ? `<p class="small">Harness-search candidates: ${s.optimizer.map(o => esc(o.name)).join(', ')}. Compare them in <a href="#/experiments">Experiments</a>.</p>` : ''}
+        ${!s.fixes.length && !s.other_fixes.length && !s.rl.length ? `<p class="small muted">${esc(s.headline)}.</p>` : ''}`;
+    }
+    case 'experiments': if (!s.candidates.length) return `<p class="small muted">${esc(s.headline)}. Start one from <a href="#/experiments">Experiments</a>.</p>`;
+      return `<div class="table-wrap"><table><tr><th>Experiment</th><th>Candidate</th><th>Judge lift (95% CI)</th><th>Holm p</th><th>Human-audited lift</th><th>This trace</th></tr>
+        ${s.candidates.map(c => `<tr><td class="small"><a href="#/experiments/${c.exp}">${esc(c.exp)}</a></td><td class="small">${esc(c.name)}${c.recommended ? ' <span class="badge good">recommended</span>' : ''}${c.has_adapter ? ' <span class="badge">RL adapter</span>' : ''}</td>
+          <td class="small nowrap">${c.lift ? `<b class="${cls(c.lift.diff)}">${pts(c.lift.diff)}</b> <span class="faint">${pts(c.lift.lo)} to ${pts(c.lift.hi)}</span>` : '—'}</td>
+          <td class="small">${c.lift && c.lift.p_holm != null ? fx(c.lift.p_holm, 3) : '—'}${c.significant ? ' ✓' : ''}</td>
+          <td class="small ${cls(c.gold_lift)}">${c.gold_lift != null ? pts(c.gold_lift) : '—'}</td><td class="small">${traceVerdict(c.verdict, c.resolved)}</td></tr>`).join('')}</table></div>
+        <p class="small muted" style="margin:8px 0 0">A candidate whose judge lift is far above its human-audited lift is gaming the judge. See the reward-hacking panel on the experiment.</p>`;
+    case 'approval': return `${s.approvals.length ? `<div class="table-wrap"><table><tr><th>Change</th><th>Route</th><th>Approvers</th><th>Status</th><th>This trace</th></tr>
+        ${s.approvals.map(a => `<tr><td class="small"><a href="#/approvals/${a.id}">${a.id}</a> ${esc(a.title)}<div class="faint mono">${esc(a.version)}</div></td><td class="small">${esc(a.change_type)}<div class="faint">${esc(a.risk)} risk · ${esc(a.rollout_plan)}</div></td>
+          <td class="small">${a.approvers.map(p => `${esc(p.role)}: ${status(p.status)}`).join('<br>')}</td><td>${status(a.status)}</td><td class="small">${traceVerdict(a.verdict, a.resolved)}</td></tr>`).join('')}</table></div>`
+        : `<p class="small muted">${esc(s.headline)}. Send a validated fix from its fix page.</p>`}
+      ${s.patterns.length ? `<h4 class="jh">Pattern library</h4><ul class="small jlist">${s.patterns.map(p => `<li><a href="#/patterns">${esc(p.name)}</a>, proven on ${esc(p.proven_on)}${p.lift ? ` (${esc(p.lift)})` : ''}</li>`).join('')}</ul>` : ''}`;
+    case 'regression': return `
+      <div class="kv small"><span class="k">This trace as a test</span><span><span class="mono">${esc(s.assertion.id)}</span>: ${esc(s.assertion.expected)} <span class="faint">(${esc(s.assertion.check)})</span></span>
+        <span class="k">In the suite</span><span>${s.in_suite.length ? s.in_suite.map(x => `<span class="mono">${esc(x)}</span>`).join(', ') : `not yet <button class="btn sm" data-act="ftosuite" data-busy="Adding…">Add this trace to ${esc(s.suite.id)}</button>`}</span>
+        <span class="k">Suite</span><span><a href="#/regression">${esc(s.suite.id)}</a> · ${num(s.suite.tests)} tests${s.suite.from_theme ? ` (${s.suite.from_theme} from this theme)` : ''} · gate ≥ ${pct(s.suite.min_pass, 0)}${s.suite.policy_all ? ' and every policy test' : ''}</span></div>
+      <h4 class="jh">This trace's assertion under each harness</h4><div class="chips">${s.trace_checks.map(c => okBadge(c.pass, `${esc(c.label)}: pass`, `${esc(c.label)}: fail`)).join('')}</div>
+      ${s.gates.length ? `<h4 class="jh">Release gate</h4><table>${s.gates.map(g => `<tr><td class="small">${g.approval ? `<a href="#/approvals/${g.approval}">${g.approval}</a>` : esc(g.fix)} ${esc(g.title)}</td><td class="small nowrap">${esc(g.result)}</td><td>${okBadge(g.ok, 'Gate passed', 'Gate failed')}</td></tr>`).join('')}</table>` : ''}
+      ${s.iterate ? '<div class="alert warn small" style="margin-top:10px"><div><b>Iterate on regressions.</b> A candidate that fails the gate goes back to step 5 with the failing tests attached.</div></div>' : ''}`;
+    case 'rollout': {
+      const ap = s.approval, ro = ap && ap.rollout;
+      const stages = s.stages.map((name, i) => {
+        const g = ro && ro.stages[i], m = g && g.metrics;
+        return `<div class="fstage ${g ? (g.status === 'Passed' ? 'good' : g.status === 'Rolled back' ? 'bad' : '') : ''}"><b class="small">${esc(name)}</b><div class="small">${g ? status(g.status) : '<span class="faint">not started</span>'}</div>
+          ${m ? `<div class="small faint">n=${m.n} · <span class="${cls(m.delta)}">${pts(m.delta)}</span></div>` : ''}</div>`;
+      }).join('<span class="jarrow">→</span>');
+      return `<div class="kv small"><span class="k">Change</span><span>${ap ? `<a href="#/approvals/${ap.id}">${ap.id}</a> ${esc(ap.title)} · ${status(ap.status)}` : '<span class="faint">none approved yet</span>'}</span>
+          <span class="k">Production now</span><span class="mono">${esc(s.production.version)}</span>
+          <span class="k">This trace on production</span><span>${okBadge(s.production.resolved, 'Resolved', 'Not resolved')}</span>
+          <span class="k">Delivery</span><span>${esc(s.delivery)}</span></div>
+        <h4 class="jh">Stages</h4><div class="fstages">${stages}</div>
+        <p class="small muted" style="margin:8px 0 0">Each stage replays fresh traffic and rolls back automatically if resolution drops more than 1 pt or violations rise.</p>`;
+    }
+  }
+  return '';
+}
+
+async function vFlow(tid) {
+  crumbs(tid ? [[NAV_GROUP('flow')], ['Core flow', '#/flow'], [tid]] : [[NAV_GROUP('flow')], ['Core flow']]);
+  const q = S.query.get('q') || '';
+  const a = S.boot.agents.find(x => x.id === S.agent);
+  const searchBar = `<div class="panel"><div class="actions"><input type="text" id="fq" value="${esc(q)}" placeholder="Search by trace id, customer words, scenario, theme or version (e.g. tr_d74f, dispute, v13)" style="flex:1;min-width:0">
+    <button class="btn primary" data-act="fsearch">Search</button>${q ? '<a class="btn ghost" href="#/flow">Clear</a>' : ''}</div>
+    <p class="small muted" style="margin:8px 0 0">Searches ${esc(a.name)} traces. Pick one to take it through all eight steps.</p></div>`;
+  ACT.fsearch = () => { location.hash = `#/flow?q=${encodeURIComponent($('#fq').value.trim())}`; };
+  const onEnter = () => $('#fq')?.addEventListener('keydown', e => { if (e.key === 'Enter') ACT.fsearch(); });
+  const sub = 'Take one trace through the eight steps of the core workflow: what happened to it at each step, and the GitHub revisions behind each one.';
+  if (!tid) {
+    if (!a.kind) { page(head('Core flow', sub) + observeOnly(a)); return; }
+    const r = await api(`/api/journey/search/${S.agent}?q=${encodeURIComponent(q)}`);
+    page(`${head('Core flow', sub)}${searchBar}
+      ${r.suggested.length ? `<div class="panel"><h2>Traces worth following</h2><p class="small muted">Failures that a proposed fix turns into resolved conversations, so every step has something to show.</p>${jResults(r.suggested, '', 'flow')}</div>` : ''}
+      <div class="panel"><div class="panel-head"><h2>${q ? `Matches for “${esc(q)}”` : 'Recent traces'}</h2><span class="small muted">${num(r.total)} trace${r.total === 1 ? '' : 's'}${r.total > r.items.length ? `, showing ${r.items.length}` : ''}</span></div>${jResults(r.items, q, 'flow')}</div>`);
+    onEnter(); return;
+  }
+  const d = await api(`/api/flow/${tid}`);
+  const t = d.trace, rp = d.repo;
+  ACT.fgo = el => document.getElementById(`fs${el.dataset.n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  ACT.ftosuite = btn => busy(btn, async () => { const x = await post(`/api/trace/${tid}/to-suite`); toast(`${tid} added as ${x.id}`); route(); });
+  page(`${head(`Core flow · <span class="mono">${esc(t.id)}</span>`, `${esc(t.agent_name)} · ${esc(t.label)} · recorded ${esc(t.date)} ${esc(t.time)} on ${esc(t.version)} · “${esc(t.snippet.slice(0, 90))}”`,
+      `<a class="btn" href="#/journey/${t.id}">Trace journey</a><a class="btn" href="#/traces/${t.id}">Evidence explorer</a>${ext(rp.url, 'Repository', 'btn')}`)}
+    ${searchBar}
+    <div class="panel"><div class="panel-head"><h2>The trace through the core workflow</h2>
+      <span class="small muted">${ext(rp.url, esc(rp.repo), 'mono')} · ${rp.live ? 'live pull requests' : 'pull requests are a dry run (no GITHUB_TOKEN)'}</span></div>
+      ${rp.error ? `<div class="alert warn small"><div>GitHub could not be read, so code links point at main without a commit: ${esc(rp.error)}</div></div>` : ''}
+      ${fStrip(d)}</div>
+    ${d.steps.map(s => `<div class="panel fcard st-${s.status}" id="fs${s.n}"><div class="panel-head"><div><span class="step-n">Step ${s.n}</span><h2 style="margin:2px 0 0">${esc(s.name)}</h2>
+        <div class="small" style="margin-top:3px">${esc(s.headline)}</div></div><span class="badge ${F_STATUS[s.status][0]}">${F_STATUS[s.status][1]}</span></div>
+      <div class="fcard-body"><div>${fDetail(s, d)}</div>
+        <aside class="fside"><h4 class="jh" style="margin-top:0">In the app</h4><div class="small">${s.links.map(([l, h]) => `<div><a href="${h}">${esc(l)}</a></div>`).join('')}</div>
+          <h4 class="jh">Code revision on GitHub</h4><div class="small">${fCode(s, false)}</div>
+          ${s.revisions.length ? `<h4 class="jh">This trace's harness revisions</h4><div class="small">${fRevs(s)}</div>` : ''}</aside></div></div>`).join('')}
+    <div class="panel"><h2>Audit trail</h2>${d.audit.length ? `<div class="table-wrap"><table>${d.audit.map(r => `<tr><td class="small nowrap">${esc(r.time)}</td><td class="small">${esc(r.event)}<div class="faint">${esc(r.obj)} · ${esc(r.detail)}</div></td><td class="small">${esc(r.actor)}</td></tr>`).join('')}</table></div>` : empty('No audit events for this trace yet.')}</div>`);
+  onEnter();
+}
+
 /* ================================================================== shell */
-const NAV = [['intro', 'Introduction'], ['label', 'Optimization Flow'], ['overview', 'Overview'], ['themes', 'Failure themes'], ['fixes', 'Fix bundles'], ['approvals', 'Approvals'],
+const NAV = [['intro', 'Introduction'], ['label', 'Optimization Flow'], ['flow', 'Core flow'], ['overview', 'Overview'], ['themes', 'Failure themes'], ['fixes', 'Fix bundles'], ['approvals', 'Approvals'],
   ['experiments', 'Experiments'], ['optimizer', 'Optimizer & RL'], ['regression', 'Regression suites'], ['release', 'Release'], ['judges', 'Judges'],
   ['label', 'Evaluation & Reporting'], ['traces', 'Evidence explorer'], ['journey', 'Trace journey'], ['evaluators', 'Evaluator health'], ['patterns', 'Pattern library'],
   ['agents', 'Agents & connections'], ['audit', 'Audit log'], ['manifest', 'Manifest hash'], ['statistics', 'Statistics'], ['rootcause', 'Root cause'],
@@ -1372,7 +1518,7 @@ const NAV = [['intro', 'Introduction'], ['label', 'Optimization Flow'], ['overvi
 const NAV_GROUP = key => { let g = ''; for (const [k, l] of NAV) { if (k === 'label') g = l; else if (k === key) return g; } return ''; };
 const ROUTES = [[/^intro$/, vIntro], [/^overview$/, vOverview], [/^themes$/, vThemes], [/^themes\/(.+)$/, vTheme], [/^fixes$/, vFixes], [/^fixes\/([^/]+)\/([^/]+)$/, vFix],
   [/^approvals$/, vApprovals], [/^approvals\/(.+)$/, vApproval], [/^experiments$/, vExperiments], [/^experiments\/(.+)$/, vExperiment],
-  [/^optimizer$/, vOptimizer], [/^regression$/, vRegression], [/^traces$/, vTraces], [/^traces\/(.+)$/, vTrace], [/^journey$/, vJourney], [/^journey\/(.+)$/, vJourney], [/^evaluators$/, vEvaluators],
+  [/^optimizer$/, vOptimizer], [/^regression$/, vRegression], [/^traces$/, vTraces], [/^traces\/(.+)$/, vTrace], [/^journey$/, vJourney], [/^journey\/(.+)$/, vJourney], [/^flow$/, vFlow], [/^flow\/(.+)$/, vFlow], [/^evaluators$/, vEvaluators],
   [/^patterns$/, vPatterns], [/^agents$/, vAgents], [/^audit$/, vAudit], [/^detection$/, vHoodDetection], [/^rootcause$/, vHoodRootCause],
   [/^statistics$/, vHoodStatistics], [/^judges$/, vHoodJudges], [/^release$/, vHoodRelease], [/^manifest$/, vHoodManifest], [/^vcs$/, vVcs]];
 
