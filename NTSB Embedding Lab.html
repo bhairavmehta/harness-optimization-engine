@@ -1,0 +1,724 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>NTSB Embedding Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working lab bench — sticky report picker, a clickable pipeline strip, then one live panel per stage. */
+:root{
+  --paper:#F4F6F9; --panel:#FCFDFE; --sunk:#EBEFF4; --ink:#111A2B; --ink2:#38445A; --muted:#626C80; --rule:#D8DEE7;
+  --accent:#D9530B; --accent-ink:#A9420A; --accent-soft:#FBE9DC;
+  --blue:#2457C5; --blue-soft:#E3EBFA; --good:#1D7A4C; --good-soft:#DFF2E7; --warn:#946200; --warn-soft:#FBF0D5;
+  --c-legacy:#6B5BB5; --c-notice:#D9530B; --c-dom:#2457C5; --c-major:#111A2B;
+  --display:'Barlow Semi Condensed','Arial Narrow',Arial,sans-serif;
+  --body:'IBM Plex Sans',Arial,sans-serif;
+  --mono:'IBM Plex Mono','Courier New',monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0E131C; --panel:#151C28; --sunk:#1B2331; --ink:#E7ECF4; --ink2:#C2CAD8; --muted:#8E98AB; --rule:#2A3445;
+  --accent:#FF8A3D; --accent-ink:#FF9E5E; --accent-soft:#3A2417;
+  --blue:#86A9FF; --blue-soft:#1C2A47; --good:#5CCB90; --good-soft:#15301F; --warn:#E8B44C; --warn-soft:#33280F;
+  --c-legacy:#A99CF0; --c-notice:#FF8A3D; --c-dom:#86A9FF; --c-major:#E7ECF4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E131C; --panel:#151C28; --sunk:#1B2331; --ink:#E7ECF4; --ink2:#C2CAD8; --muted:#8E98AB; --rule:#2A3445;
+  --accent:#FF8A3D; --accent-ink:#FF9E5E; --accent-soft:#3A2417;
+  --blue:#86A9FF; --blue-soft:#1C2A47; --good:#5CCB90; --good-soft:#15301F; --warn:#E8B44C; --warn-soft:#33280F;
+  --c-legacy:#A99CF0; --c-notice:#FF8A3D; --c-dom:#86A9FF; --c-major:#E7ECF4; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:8px 64px;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;color:var(--ink)}
+h1{font-size:clamp(34px,5vw,52px);font-weight:700;line-height:1.02;letter-spacing:-.01em}
+h2{font-size:30px;font-weight:600;line-height:1.1}
+h3{font-size:20px;font-weight:600;line-height:1.2}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+.lede{max-width:68ch;color:var(--ink2);font-size:17px}
+/* sticky bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--rule);padding-block:12px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.bar label{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select,input[type=text]{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:8px 10px;min-width:0}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{font-family:var(--mono);font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--rule);background:var(--panel);color:var(--ink2);white-space:nowrap}
+.badge.cls-legacy{border-color:var(--c-legacy);color:var(--c-legacy)}
+.badge.cls-notification{border-color:var(--c-notice);color:var(--accent-ink);background:var(--accent-soft)}
+.badge.cls-brief,.badge.cls-full{border-color:var(--c-dom);color:var(--blue);background:var(--blue-soft)}
+.badge.cls-major{border-color:var(--ink);color:var(--ink)}
+.badge.good{border-color:var(--good);color:var(--good);background:var(--good-soft)}
+.badge.warn{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+/* flow strip */
+.flow{display:flex;gap:0;overflow-x:auto;padding-bottom:6px}
+.stage{flex:1 0 118px;display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid var(--rule);border-left:none;padding:12px 12px 14px;cursor:pointer;position:relative;min-width:118px}
+.stage:first-child{border-left:1px solid var(--rule);border-radius:8px 0 0 8px}
+.stage:last-child{border-radius:0 8px 8px 0}
+.stage .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.stage .t{font-family:var(--display);font-weight:600;font-size:17px;line-height:1.1}
+.stage .s{font-size:12px;color:var(--muted);line-height:1.35}
+.stage[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.stage[aria-pressed="true"] .n,.stage[aria-pressed="true"] .s{color:var(--paper);opacity:.8}
+.stage:hover:not([aria-pressed="true"]){background:var(--sunk)}
+.stage.branch{border-top:3px solid var(--accent)}
+.detail{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:20px 22px}
+.detail ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.now{background:var(--sunk);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+/* sections */
+section.block{display:flex;flex-direction:column;gap:18px;scroll-margin-top:90px}
+.head{display:flex;flex-direction:column;gap:6px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;font-size:14px}
+.kv dt{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+.kv dd{margin:0}
+.rules{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.rules li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:14px}
+.tick{font-family:var(--mono);font-weight:500}
+.tick.y{color:var(--good)} .tick.n{color:var(--muted)}
+.text{font-family:var(--mono);font-size:13px;line-height:1.65;background:var(--sunk);border-radius:8px;padding:12px 14px;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow:auto}
+.text.prose{font-family:var(--body);font-size:14px}
+mark{background:var(--blue-soft);color:var(--blue);border-radius:3px;padding:0 2px}
+mark.fix{background:var(--accent-soft);color:var(--accent-ink)}
+mark.drop{background:transparent;color:var(--muted);text-decoration:line-through}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+/* composition bar */
+.comp{display:flex;height:18px;border-radius:4px;overflow:hidden;background:var(--sunk)}
+.comp span{display:block;height:100%}
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:14px;padding:7px 12px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--ink2);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.typegrid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fact{background:var(--sunk);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.fact b{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.fact span{font-size:14px}
+.bars{display:flex;flex-direction:column;gap:6px}
+.brow{display:grid;grid-template-columns:150px minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13px}
+.brow .lab{font-family:var(--mono);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .track{height:14px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.brow .fill{height:100%;background:var(--blue);border-radius:3px}
+.brow .val{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.vecstrip{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.vecstrip div{height:28px;border-radius:3px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:4px;background:var(--sunk);color:var(--ink2)}
+.chip.cause{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.cictt{background:var(--blue-soft);color:var(--blue)}
+.vectors{display:flex;flex-direction:column;gap:8px}
+.vrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:start;padding:10px 12px;border-radius:8px;border:1px solid var(--rule)}
+.vrow.off{opacity:.45;border-style:dashed}
+.vrow code{font-family:var(--mono);font-size:13px;font-weight:500}
+.vrow p{font-size:13px;color:var(--ink2)}
+.svgbox{overflow-x:auto;background:var(--sunk);border-radius:8px}
+.svgbox svg{display:block}
+/* search */
+.qrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.qrow input[type=text]{flex:1 1 280px}
+.sugs{display:flex;flex-wrap:wrap;gap:6px}
+.sug{font:inherit;font-size:13px;padding:4px 10px;border-radius:999px;border:1px dashed var(--rule);background:transparent;color:var(--ink2);cursor:pointer}
+.sug:hover{border-style:solid}
+.toggles{display:flex;flex-wrap:wrap;gap:16px;font-size:14px;color:var(--ink2)}
+.toggles label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:8px 10px;border-bottom:1px solid var(--rule)}
+td{padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--ink2);white-space:nowrap}
+tr.sel td{background:var(--blue-soft)}
+.snip{font-size:13px;color:var(--ink2);max-width:52ch}
+.fused{display:flex;align-items:center;gap:8px}
+.fused i{display:block;height:8px;background:var(--accent);border-radius:2px}
+/* classify */
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.step .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.decision{border-width:2px}
+.decision.auto{border-color:var(--good)} .decision.adj{border-color:var(--warn)} .decision.prov{border-color:var(--accent)}
+.note{font-size:13px;color:var(--muted)}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:16px;display:flex;flex-direction:column;gap:6px}
+@media (max-width:860px){
+  .grid2,.typegrid,.detail{grid-template-columns:minmax(0,1fr)}
+  .steps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .facts{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .steps{grid-template-columns:minmax(0,1fr)}
+  .brow{grid-template-columns:96px minmax(0,1fr) 44px}
+  .vrow{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:no-preference){.fill,.fused i{transition:width .3s ease}}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:14px;padding-top:24px">
+    <p class="eyebrow">Aviation safety data science · interactive explainer</p>
+    <h1>NTSB Embedding Lab</h1>
+    <p class="lede">Follow one investigation record through the proposed pipeline: how it is routed, cleaned, turned into several kinds of embeddings, searched and classified. Everything below runs live in your browser on the 23 attached NTSB reports (25 aircraft records).</p>
+  </header>
+
+  <div class="bar" role="region" aria-label="Report picker">
+    <label for="rec">Report</label>
+    <select id="rec"></select>
+    <div class="badges" id="barBadges"></div>
+  </div>
+
+  <section class="block" id="flow">
+    <div class="head">
+      <p class="eyebrow">Proposed flow</p>
+      <h2>Nine stages, two outputs</h2>
+      <p class="muted">Select a stage to see what it does and what it does to the selected report. Stages 7 and 8 are the two outputs: grounded answers and classifications.</p>
+    </div>
+    <div class="flow" id="stages" role="group" aria-label="Pipeline stages"></div>
+    <div class="detail" id="stageDetail"></div>
+  </section>
+
+  <section class="block" id="route">
+    <div class="head">
+      <p class="eyebrow">Stage 2 · Route</p>
+      <h2>Which kind of record is this?</h2>
+      <p class="muted">The router reads structured fields, not the rendered PDF, and decides the report class and evidence level. Everything downstream depends on it.</p>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Rules checked</h3><ul class="rules" id="routeRules"></ul></div>
+      <div class="card"><h3>Router output → payload</h3><dl class="kv" id="routeOut"></dl></div>
+    </div>
+  </section>
+
+  <section class="block" id="clean">
+    <div class="head">
+      <p class="eyebrow">Stages 3–4 · Clean and structure</p>
+      <h2>What the embedder actually receives</h2>
+      <p class="muted" id="cleanIntro"></p>
+    </div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <p class="note">Rendered PDF words for this record</p>
+        <div class="comp" id="comp" aria-label="Composition of rendered words"></div>
+        <div class="legend" id="compLegend"></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>As published</h3><div class="text" id="rawText"></div></div>
+      <div class="card"><h3>After cleaning</h3><div class="text prose" id="cleanText"></div><div class="legend"><span><span class="sw" style="background:var(--blue-soft)"></span>abbreviation expanded</span><span><span class="sw" style="background:var(--accent-soft)"></span>run-on repaired</span></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Findings, verbalized</h3><div class="text prose" id="verbText"></div></div>
+      <div class="card"><h3>Context header (synopsis input)</h3><div class="text prose" id="synText"></div><p class="note">Built here from fields with a template. Production uses an on-prem LLM prompted to add missing context, not to paraphrase.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="embed">
+    <div class="head">
+      <p class="eyebrow">Stage 5 · Embed</p>
+      <h2>Seven kinds of embedding</h2>
+      <p class="muted">Each tab explains one embedding type and shows it on the selected report. Dense vectors are approximated here with LSA (a 10-dimension SVD of TF-IDF) because a neural embedder cannot run in this page; the mechanics are the same.</p>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="typegrid" id="typePanel"></div>
+  </section>
+
+  <section class="block" id="search">
+    <div class="head">
+      <p class="eyebrow">Stages 6–7 · Index and retrieve</p>
+      <h2>Hybrid search with reciprocal rank fusion</h2>
+      <p class="muted">Three channels rank the corpus independently, then RRF merges the ranks (score = Σ 1 / (60 + rank)). Try a query that uses words the reports never use, then turn query expansion on.</p>
+    </div>
+    <div class="card">
+      <div class="qrow">
+        <input type="text" id="q" aria-label="Search query" value="truck on the runway in fog at night">
+      </div>
+      <div class="sugs" id="sugs"></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="tExpand" checked> Query expansion (simulated with a synonym list)</label>
+        <label><input type="checkbox" id="tGroup" checked> Group records by event</label>
+        <label><input type="checkbox" id="tDown" checked> Down-weight notifications ×0.7</label>
+      </div>
+      <p class="note mono" id="qExpanded"></p>
+      <div class="tablewrap"><table id="results"></table></div>
+      <p class="note">Rank columns show each channel’s own rank (– = no match in that channel). Notifications have no findings, so the findings channel cannot see them.</p>
+    </div>
+  </section>
+
+  <section class="block" id="classify">
+    <div class="head">
+      <p class="eyebrow">Stage 8 · Classify</p>
+      <h2>The cascade on the selected report</h2>
+      <p class="muted">Rules first, then neighbours, then a candidate set, then routing. The kNN pool holds only records with investigator findings; notifications are never training labels. With only 15 labelled records in this sample, neighbours often disagree with the rules, which is exactly the case routing exists for.</p>
+    </div>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <footer>
+    <p>Data: 23 NTSB Aviation Investigation Final Reports attached to this conversation (10 from Nov 1983–Jan 1984, 13 from Apr–Jun 2013), retrieved from CAROL. Reference CICTT labels are the author’s reading and await SME validation.</p>
+    <p>Simplifications: LSA stands in for a neural dense embedder, character-trigram similarity stands in for contextual token embeddings, and the candidate-set threshold is illustrative, not calibrated.</p>
+  </footer>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const R = [
+{id:"LAX84IA119",ev:"LAX84IA119",date:"1983-12-29",loc:"Oakland, CA",ac:"Boeing 707-123B",reg:"N2773",part:"Part 121 non-scheduled",dmg:"Minor",words:852,
+ narr:"THE ACFT EXPERIENCED A STRONG SHIMMY & VIBRATION ON TAKEOFF WHICH WAS ATTRIBUTED TO DEEP RUTS IN THE SNOW. AFTER LANDINGON DECELERATION THE VIBRATION BECAME SO SEVERE THAT THE PLT STOPPED ON THE RWY CENTERLINE & ORDERED AN EVACUATION. IT WAS DETERMINED THAT THE NOSE GEAR TOWING & STEERING CONNECTING LINK WAS DISCONNECTED FROM THE NOSE STEERING COLLAR WITH THE STEERING QUICK RELEASE PIN INSTALLED IN THE DISCONNECTED LINK PREVENTING CONTINUITY BETWEEN COCKPIT STEERING & THE NOSE WHEELS WHICH WERE ALLOWED FREE PLAY.",
+ occ:[{o:"MISCELLANEOUS/OTHER",ph:"LANDING - ROLL",f:["(C) LANDING GEAR,STEERING SYSTEM - DISCONNECTED","(C) MISCELLANEOUS - NOT PERFORMED - COMPANY MAINTENANCE PERSONNEL","EMERGENCY PROCEDURE - PREMATURE - PILOT IN COMMAND"]}],ref:["SCF-NP"]},
+{id:"MIA84IA054",ev:"MIA84IA054",rec:"N82NA",date:"1984-01-01",loc:"Atlantic Ocean",ac:"McDonnell Douglas DC-10-30",reg:"N82NA",part:"Part 121 non-scheduled",dmg:"None",words:867,
+ narr:"ACFT NEARLY COLLIDED WITH PAA N656PA AT FL370 ABOUT 200 MI EAST OF MIAMI WHEN ACFT PASSED ABOUT 300 FT FROM EACH OTHER IN A NONRADAR ENVIRONMENT. BOTH ACFT WERE AT THEIR ASSIGNED FLIGHT LEVEL & WERE OPERATING ON ROUTES APPROVED & ISSUED BYMIAMI ARTCC. THE D72 CONTROLLER(CTLR) FAILED TO COORDINATE THE ALT OF N656PA WITH THE D81 CTLR, FAILED TO NOTE CONFLICT WHEN HE APPROVED FL370 FOR N82NA, & PLACED FLT PROGRESS STRIP FOR N82NA IN WRONG BAY AT SECTOR 72 POSITION. ADDITIONALLY, D81 & R81 CTLRS FAILED TO DETECT CONFLICT BETWEEN THE TWO ACFT. THE R72 CTLR DID NOT CAREFULLY READ THE STRIP WHEN HE FOUND IT. THE BOARD ALSO FOUND THE QUALITY ASSURANCE EFFORTS AT THE MIAMI ARTCC TO BE DEFICIENT.",
+ occ:[{o:"NEAR COLLISION BETWEEN AIRCRAFT",ph:"CRUISE - NORMAL",f:["(C) IFR SEPARATION STANDARDS - NOT MAINTAINED - ATC PERSONNEL(ARTCC)","(C) CREW/GROUP COORDINATION - INADEQUATE - ATC PERSONNEL(ARTCC)"]},{o:"ABRUPT MANEUVER",ph:"CRUISE - NORMAL",f:[]}],ref:["MAC","ATM"]},
+{id:"MIA84IA054",ev:"MIA84IA054",rec:"N656PA",date:"1984-01-01",loc:"Atlantic Ocean",ac:"Boeing 747-121",reg:"N656PA",part:"Part 121 scheduled",dmg:"None",words:867,
+ narr:"ACFT NEARLY COLLIDED WITH PAA N82NA AT FL370 ABOUT 200 MI EAST OF MIAMI WHEN ACFT PASSED ABOUT 300 FT FROM EACH OTHER INA NONRADAR ENVIRONMENT. BOTH ACFT WERE AT THEIR ASSIGNED FLIGHT LEVEL & WERE OPERATING ON ROUTES APPROVED & ISSUED BY MIAMI ARTCC. THE D72 CONTROLLER(CTLR) FAILED TO COORDINATE THE ALT OF N656PA WITH THE D81 CTLR, FAILED TO NOTE CONFLICT WHEN HE APPROVED FL370 FOR N82NA, & PLACED FLT PROGRESS STRIP FOR N82NA IN WRONG BAY AT SECTOR 72 POSITION. ADDITIONALLY, D81 & R81 CTLRS FAILED TO DETECT CONFLICT BETWEEN THE TWO ACFT. THE R72 CTLR DID NOT CAREFULLY READ THE STRIP WHEN HE FOUND IT. THE BOARD ALSO FOUND THE QUALITY ASSURANCE EFFORTS AT THE MIAMI ARTCC TO BE DEFICIENT.",
+ occ:[{o:"NEAR COLLISION BETWEEN AIRCRAFT",ph:"CRUISE - NORMAL",f:["(C) IFR SEPARATION STANDARDS - NOT MAINTAINED - ATC PERSONNEL(ARTCC)","(C) CREW/GROUP COORDINATION - INADEQUATE - ATC PERSONNEL(ARTCC)"]}],ref:["MAC","ATM"]},
+{id:"SEA84IA033",ev:"SEA84IA033",date:"1984-01-05",loc:"Seattle, WA",ac:"Boeing 727-90C",reg:"N766AS",part:"Part 91 positioning",dmg:"Minor",words:829,
+ narr:"THE ACFT STRUCK THE APPROACH LIGHTS TO RWY 16R WHILE ON AN ILS APPROACH. ANALYSIS OF THE FDR READOUT SHOWED AN INCREASED DESCENT RATE FOLLOWING VISUAL SIGHTING OF THE RWY ENVIRONMENT.",
+ occ:[{o:"UNDERSHOOT",ph:"APPROACH - FAF/OUTER MARKER TO THRESHOLD (IFR)",f:["(F) WEATHER CONDITION - LOW CEILING","(F) WEATHER CONDITION - FOG","(F) WEATHER CONDITION - RAIN","(C) PROPER GLIDEPATH - NOT MAINTAINED - PILOT IN COMMAND"]},{o:"IN FLIGHT COLLISION WITH OBJECT",ph:"APPROACH - VFR PATTERN - DOWNWIND",f:["(F) OBJECT - APPROACH LIGHT/NAVAID"]}],ref:["USOS"]},
+{id:"MKC84IA018",ev:"MKC84IA018",date:"1983-11-10",loc:"St. Louis, MO",ac:"Boeing 727-15C",reg:"N436EX",part:"Part 121 scheduled",dmg:"None",words:869,
+ narr:"THE PILOT REPORTED THAT AFTER ENGINE START THE ACFT WAS DIRECTED BY THE TOWER TO TAXI FOR TAKEOFF. THE MARSHALLER MOTIONED HIM FORWARD AND HE ADVANCED THE POWER TO 65 PERCENT TO BREAK AWAY AND THEN REDUCED IT TO IDLE. AT NO TIME WAS THE PILOT ADVISED THAT AN ACFT WAS BEHIND HIM. THE EXHAUST OF THE JET ENGINE LIFTED THE WING OF A CESSNA 206 WHICH WAS TAXIING BEHIND THE BOEING 727. THE RIGHT WING STRUCK THE GROUND SUSTAINING MINOR DAMAGE. THE CREW OF THE BOEING 727 WAS UNAWARE OF WHAT HAD HAPPENED.",
+ occ:[{o:"PROPELLER BLAST OR JET EXHAUST/SUCTION",ph:"TAXI - TO TAKEOFF",f:["(F) OBJECT - AIRCRAFT MOVING ON GROUND","(C) CLEARANCE - NOT MAINTAINED - PILOT OF OTHER AIRCRAFT","(F) IDENTIFICATION OF AIRCRAFT VISUALLY - NOT PERFORMED - ATC PERSONNEL(LCL/GND/CLNC)","(F) IDENTIFICATION OF AIRCRAFT VISUALLY - NOT PERFORMED - GROUND PERSONNEL"]}],ref:["GCOL"]},
+{id:"DCA84AA006",ev:"DCA84AA006",date:"1983-11-11",loc:"Miami, FL",ac:"Boeing 727-225A",reg:"N812EA",part:"Part 121 scheduled",dmg:"Substantial",words:1023,
+ narr:"AFTER DEPARTING MIAMI & CLIMBING THROUGH 10,900 FT THE #3 RIGHT MAIN LANDING GEAR TIRE EXPLODED CAUSING MASSIVE DAMAGE TO SYSTEMS A & B HYDRAULIC LINES WHICH RESULTED IN A LOSS OF A & B HYDRAULIC SYSTEMS. THE ACFT RETURNED TO MIAMI & THE CREW WAS UNABLE TO EXTEND THE RIGHT MAIN LANDING GEAR USING EMERGENCY MANUAL EXTENSION PROCEDURES. AFTER LANDING WITH THE RIGHT MAIN GEAR RETRACTED, THE LEFT MAIN & NOSE GEAR COLLAPSED & SEPARATED. MASSIVE PLY SEPARATIONS WERE FOUND IN THE #3 TIRE STARTING AT THE TOE BEAD. INSP OF THE SITE WHERE THE SEPARATION MET THE BEAD BUNDLES REVEALED A LOCATION WHERE THE BEAD SEAT HAD BEEN SANDED & SMOOTHED. THE BEAD SEAT HAD ALSO BEEN SUBJECTED TO EXCESSIVE HEAT FOR AN EXTENDED PERIOD OF TIME CAUSING SEVERE DETERIORATION OF THE BEAD SEAT AREA.",
+ occ:[{o:"AIRFRAME/COMPONENT/SYSTEM FAILURE/MALFUNCTION",ph:"CLIMB - TO CRUISE",f:["(C) LANDING GEAR,TIRE - PREVIOUS DAMAGE","(C) MAINTENANCE,INSTALLATION - IMPROPER - OTHER MAINTENANCE PERSONNEL","(C) LANDING GEAR,TIRE - OVERTEMPERATURE","(C) LANDING GEAR,TIRE - EXPLODED","HYDRAULIC SYSTEM,LINE - FAILURE,PARTIAL","(C) HYDRAULIC SYSTEM - DISABLED","(C) EMERGENCY PROCEDURE - POOR"]},{o:"FORCED LANDING",ph:"LANDING - FLARE/TOUCHDOWN",f:[]},{o:"OTHER GEAR COLLAPSED",ph:"LANDING - FLARE/TOUCHDOWN",f:["(C) HYDRAULIC SYSTEM - NO PRESSURE","(C) DOOR,LANDING GEAR - MOVEMENT RESTRICTED","GEAR EXTENSION - NOT POSSIBLE","LANDING GEAR,MAIN GEAR - OVERLOAD"]}],ref:["SCF-NP","ARC"]},
+{id:"CHI84IA052",ev:"CHI84IA052",rec:"N41097",date:"1983-11-26",loc:"Columbus, OH",ac:"Cessna 421B",reg:"N41097",part:"Part 91",dmg:"Minor",words:850,
+ narr:"DURING APPROACH TO COLUMBUS, THE B-727 WAS VECTORED TO A FINAL FOR RWY 28L & THE C-421 CLEARED FOR A VISUAL TO RWY 31 WITH INSTRUCTIONS TO 'LAND SHORT OF TWO EIGHT LEFT...' AFTER CONTACTING THE TOWER THE PLT OF THE C-421 WAS TWICE CLEAREDTO LAND ON RWY 31 WITH INSTRUCTIONS TO HOLD SHORT OF RWY 28L. THE PLT ACKNOWLEDGED BOTH INSTRUCTIONS. DURING LANDING THE ACFT COLLIDED AT THE INTERSECTION OF RWYS 31 & 28L. THE PLT OF THE C-421 HAD DIFFICULTY DISTINGUISHING THE INTERSECTION.",
+ occ:[{o:"ON GROUND/WATER COLLISION WITH OBJECT",ph:"LANDING - ROLL",f:["(F) LIGHT CONDITION - DARK NIGHT","(C) INSTRUCTIONS,WRITTEN/VERBAL - NOT FOLLOWED - PILOT IN COMMAND"]}],ref:["RI"]},
+{id:"CHI84IA052",ev:"CHI84IA052",rec:"N480DA",date:"1983-11-26",loc:"Columbus, OH",ac:"Boeing 727-232",reg:"N480DA",part:"Part 121 scheduled",dmg:"Minor",words:850,
+ narr:"DURING APPROACH TO COLUMBUS, THE B-727 WAS VECTORED TO A FINAL FOR RWY 28L & THE C-421 CLEARED FOR A VISUAL TO RWY 31 WITH INSTRUCTIONS TO 'LAND SHORT OF TWO EIGHT LEFT...' AFTER CONTACTING THE TOWER THE PLT OF THE C-421 WAS TWICE CLEAREDTO LAND ON RWY 31 WITH INSTRUCTIONS TO HOLD SHORT OF RWY 28L. THE PLT ACKNOWLEDGED BOTH INSTRUCTIONS. DURING LANDING THE ACFT COLLIDED AT THE INTERSECTION OF RWYS 31 & 28L. THE PLT OF THE C-3 421 HAD DIFFICULTY DISTINGUISHING THE INTERSECTION.",
+ occ:[{o:"ON GROUND/WATER COLLISION WITH OBJECT",ph:"LANDING - ROLL",f:["(F) LIGHT CONDITION - DARK NIGHT","(C) INSTRUCTIONS,WRITTEN/VERBAL - NOT FOLLOWED - PILOT OF OTHER AIRCRAFT"]}],ref:["RI"],flags:["Narrative typo “C-3 421” differs from the other aircraft’s record"]},
+{id:"DEN84IA041",ev:"DEN84IA041",date:"1983-12-09",loc:"Denver, CO",ac:"Boeing 767",reg:"N613UA",part:"Part 121 scheduled",dmg:"None",words:736,
+ narr:"ON TAKEOFF ROLL THE NO 3 WHEEL ON THE RIGHT MAIN LANDING GEAR FELL OFF THE ACFT. THE ACFT RETURNED AND LANDED WITHOUT FURTHER INCIDENT. THE WHEEL BEARING WAS FOUND FAILEDDUE TO COSMOLINE CONTAMINATION.",
+ occ:[{o:"AIRFRAME/COMPONENT/SYSTEM FAILURE/MALFUNCTION",ph:"TAKEOFF - ROLL/RUN",f:["(C) LANDING GEAR,WHEEL - FAILURE,TOTAL","(C) LANDING GEAR,WHEEL - CONTAMINATION"]}],ref:["SCF-NP"]},
+{id:"ANC84FA026",ev:"ANC84FA026",date:"1983-12-19",loc:"Anchorage, AK",ac:"Boeing 747-200F",reg:"J8151",part:"Part 129 foreign",dmg:"Substantial",words:928,
+ narr:"AT 2359 THE LOCAL CONTROLLER CLEARED THE FLT TO LAND ON RWY 6R. AT 0001 THE GROUND CONTROLLER CLEARED A STATE-OPERATED PICK-UP TRUCK ONTO RWY 6R FOR A TAPLEY RUN. THE GROUND CONTROLLER STATED THAT HE REQUESTED CLEARANCE FROM THE LOCAL CONTROLLER TO ALLOW THE TRUCK ON THE RWY. HE WAS NOT AWARE THAT THE B-747 HAD BEEN CLEARED TO LAND. THE LOCAL CONTROLLERWAS BUSY WITH OTHER COMMUNICATIONS & WAS NOT SURE IF HE ACKNOWLEDGED THE REQUEST FROM GROUND CONTROL; HOWEVER, THE GROUND CONTROLLER BELIEVED THE LOCAL CONTROLLER SAID 'OKAY.' THE ACFT STRUCK THE TRUCK ABOUT 2,000 FT BEYOND THE APPROACH END OF THE RWY WHILE THE ACFT'S MAIN LANDING GEAR WAS ON THE GROUND BUT THE NOSE HAD NOT YET BEEN LOWERED FROM THE LANDING ATTITUDE. THE FLT CREW STATED THAT THEY DID NOT SEE THE TRUCK PRIOR TO THE COLLISION. AT 0013 THE RWY VISUALRANGE(RVR) WAS 600 FT VARIABLE 800 FT.",
+ occ:[{o:"IN FLIGHT COLLISION WITH OBJECT",ph:"LANDING - FLARE/TOUCHDOWN",f:["(F) LIGHT CONDITION - DARK NIGHT","(F) WEATHER CONDITION - LOW CEILING","(F) WEATHER CONDITION - FOG","(F) WEATHER CONDITION - OBSCURATION","(C) CONTROL TOWER SERVICE - INADEQUATE - ATC PERSONNEL(LCL/GND/CLNC)","(F) OBJECT - VEHICLE"]}],ref:["RI"]},
+{id:"LAX84AA132",ev:"LAX84AA132",date:"1983-12-28",loc:"New York, NY",ac:"Boeing 727-224",reg:"N79750",part:"Part 121 scheduled",dmg:"Substantial",words:1067,
+ narr:"DURING APCH THE CREW WAS ADVISED OF A WINDSHEAR ON FINAL APCH OF +10 TO -15 KTS AT 700 FT & 400 FT AGL. WINDS WERE REPORTED 170 DEG AT 26 KTS GUSTING TO 40 KTS. THE PLT ADDED 20 KTS TO HIS V-REF SPEED OF 132 KTS & SELECTED AUTO-SPOILERDEPLOYMENT. PRIOR TO TOUCHDOWN CREW WAS ADVISED AGAIN OF A WINDSHEAR ALERT IN SEVERAL QUADRANTS. AFTER TOUCHDOWN THE ACFT BOUNCED & THE AUTO-SPOILERS DEPLOYED. THE ACFT TOUCHED DOWN AGAIN IN WHAT THE CREW DESCRIBED AS A FIRM LANDING. THEFLT ENGR FOUND NO APPARENT DAMAGE SO THE CREW DID NOT WRITE IT UP AS A HARD LANDING. ON 12/31 DAMAGE WAS FOUND ON THE UPPER CROWN OF THE FUSELAGE. LATER INSPECTIONS REVEALEDNOSE GEAR DAMAGE ALSO. SIGNIFICANT WINDSHEAR EXISTED BELOW 1,000 FT MSL & MODERATE TO SEVERE TURBULENCE EXISTED BELOW 5,000 FT MSL.",
+ occ:[{o:"IN FLIGHT ENCOUNTER WITH WEATHER",ph:"APPROACH - FAF/OUTER MARKER TO THRESHOLD (IFR)",f:["(F) WEATHER CONDITION - LOW CEILING","(F) WEATHER CONDITION - TURBULENCE","(F) WEATHER CONDITION - DOWNDRAFT","(F) WEATHER CONDITION - CROSSWIND","(F) WEATHER CONDITION - HIGH WIND","(F) WEATHER CONDITION - WINDSHEAR"]},{o:"HARD LANDING",ph:"LANDING - FLARE/TOUCHDOWN",f:["(F) LIGHT CONDITION - DARK NIGHT","(F) AIRPORT FACILITIES,RUNWAY/LANDING AREA CONDITION - WET","(C) SPOILER EXTENSION - IMPROPER - PILOT IN COMMAND","(C) AIRSPEED - EXCESSIVE - PILOT IN COMMAND"]}],ref:["ARC","WSTRW"]},
+{id:"MIA84LA052",ev:"MIA84LA052",date:"1983-12-29",loc:"Near Tampa, FL",ac:"Boeing 737-201",reg:"N811N",part:"Part 121 scheduled",dmg:"None",words:963,
+ narr:"PRIOR TO DEPARTURE, THE CAPTAIN REVIEWED AVAILABLE WX REPORTS & WAS AWARE OF THE WX CONDITIONS, INCLUDING CURRENT SIGMETS. HE DECIDED TO FLY A COURSE THAT WAS PARALLEL TO A FRONTAL SYS. AFTER DEPARTING, HE LEFT THE SEAT BELT SIGN ON, BUT DID NOT BRIEF THE PASSENGERS TO EXPECT TURBULENCE NOR RESTRICT THE FLT ATTENDANTS TO THEIR SEATS. WHILE CRUISING AT 17,000 FT MSL, HE USED HIS RADAR AS WELL AS ATC ADVISORIES TO IDENTIFY ADVERSE WX. AFTER TURNING TO AVOID AN AREA OF HEAVY PRECIPITATION, THE ACFT ENCOUNTERED TURBULENCE. AT THAT TIME, 3 FLT ATTENDANTS & 1 PASSENGER WERE WALKING IN THE AISLE OF THE ACFT. ONE PASSENGER WAS SERIOUSLY INJURED. ONE FLT ATTENDANT & 6 PASSENGERS RECEIVED MINOR INJURIES.",
+ occ:[{o:"IN FLIGHT ENCOUNTER WITH WEATHER",ph:"CRUISE",f:["(C) DISPATCH - IMPROPER - DISPATCHER","(C) FLIGHT INTO KNOWN ADVERSE WEATHER - INITIATED - PILOT IN COMMAND","(C) IN-FLIGHT PLANNING/DECISION - IMPROPER - PILOT IN COMMAND","(F) WEATHER CONDITION - THUNDERSTORM","(F) WEATHER CONDITION - TURBULENCE(THUNDERSTORMS)","(C) SEAT BELT - NOT USED - FLIGHT ATTENDANT","(C) SEAT BELT - NOT USED - PASSENGER"]}],ref:["TURB"]},
+/* 2013 CAROL records */
+{id:"DCA13WA072",ev:"DCA13WA072",date:"2013-04-05",loc:"Guatemala City, Guatemala",ac:"Boeing 737-4Q8",reg:"N279AD",part:"Part 129 foreign",dmg:"Minor",words:694,def:"Birdstrike",seq:[["Takeoff","Birdstrike",1]],
+ narr:"On 5 April 2013, at approximately 1029 local time, a Boeing 737-4Q8, registration N279AD, ingested a turkey vulture in the right engine during takeoff from La Aurora Airport, Guatemala City, Guatemala. Inspection of the airplane revealed damage to the first stage compressor of the right engine. There were no injuries.",
+ notice:"The incident is being investigated by the Departamento de Accidentes e Incidentes of the Dirección General de Aeronáutica Civil (DGAC) of Guatemala. The NTSB has appointed an Accredited Representative to assist the investigation under the provisions of ICAO Annex 13 as the State of Design and Manufacture of the aircraft.",auth:"DGAC Guatemala",role:"State of Design and Manufacture",ref:["BIRD"]},
+{id:"DCA13WA080",ev:"DCA13WA080",date:"2013-04-22",loc:"Melbourne, Australia",ac:"Boeing 747-400",reg:"N119UA",part:"(blank)",dmg:"Minor",words:668,def:"Ground collision",seq:[["Taxi","Ground collision",1]],narr:"",
+ notice:"The Australian Transport Safety Bureau (ATSB) has notified the NTSB of an accident involving a Boeing 747-400 that occurred on April 22, 2013. The NTSB has appointed a U.S. Accredited Representative to assist the ATSB investigation under the provisions of ICAO Annex 13 as the State of Manufacturer and Design of the airplane.",auth:"ATSB",role:"State of Design and Manufacture",ref:["GCOL"],flags:["“Flight Conducted Under” is blank"]},
+{id:"DCA13WA092",ev:"DCA13WA092",date:"2013-04-16",loc:"Madrid, Spain",ac:"Boeing 767-200",reg:"XA-TOJ",part:"Non-U.S., commercial",dmg:"Substantial",words:657,def:"Tailstrike",seq:[["Takeoff","Tailstrike",1]],
+ narr:"On April 16, 2013, about 1235 UTC, an Aero Mexico B767-200, registration XA-TOJ, operated as flight 071 from Madrid-Barajas International Airport to Benito Juarez International Airport, Mexico City, experienced a tail strike while departing from runway 36L in Madrid. The airplane incurred substantial damage. Two flight attendants received minor injuries.",
+ notice:"The investigation is being conducted by the Spanish Civil Aviation Accidents and Incidents Investigation Commission (CIAIAC). All information on this investigation will be released by the CIAIAC.",auth:"CIAIAC (Spain)",role:"not stated",ref:["ARC"]},
+{id:"DCA13WA098",ev:"DCA13WA098",date:"2013-04-05",loc:"Padang, Indonesia",ac:"Boeing 737-3U3",reg:"PK-GGN",part:"Part 129 foreign",dmg:"Substantial",words:636,narr:"",
+ notice:"The National Transportation Safety Committee (NTSC) of Indonesia has notified the NTSB of an accident involving a B737-300, which occurred on April 7, 2013. The NTSB has appointed a U.S. Accredited Representative to assist the NTSC investigation under the provisions of ICAO Annex 13 as the State of Manufacturer and Design of the airplane.",auth:"NTSC (Indonesia)",role:"State of Design and Manufacture",ref:[],flags:["Header date April 5 conflicts with narrative date April 7","Operator spelled “Citilink Garunda Indonesia”"]},
+{id:"DCA13WA101",ev:"DCA13WA101",date:"2013-06-04",loc:"Shijiazhuang, China",ac:"Boeing 777-200",reg:"N782AN",part:"Part 121 scheduled",dmg:"None",words:763,seq:[["Approach","Fuel related",0]],
+ narr:"On June 4, 2013, American Airlines flight 187, a B777-200, N782AN, declared mayday due to emergency fuel while on approach to Beijing Capital International Airport. A heavy thunderstorm was present at the airport and the flight was unable to land. The crew chose Tianjin as an alternate, about 150 km away, but it was also covered by a heavy thunderstorm, and the crew selected Shijiazhuang as a second alternate where they landed uneventually. The flight originated from Chicago O'Hare.",
+ notice:"The incident is being investigated by the Office of Aviation Safety, Northern Regional Administration of the Civil Aviation Administration of China (CAAC). The NTSB has appointed a U.S. Accredited Representative as the State of Manufacture and State of the Operator.",auth:"CAAC",role:"State of Manufacture and Operator",ref:["FUEL"],flags:["Narrative typo “uneventually”"]},
+{id:"DCA13WA102",ev:"DCA13WA102",date:"2013-05-17",loc:"Reus, Spain",ac:"Boeing 757-200",reg:"G-OOBE",part:"Part 129 foreign",dmg:"None",words:700,
+ narr:"On 17 May 2013, at about 0703 UTC, a B757-200, registration G-OOBE, operated by Thomson Airways, was on approach and cleared to land at Reus Airport, Spain, and was forced to perform a go-around due to a Diamond DA20, registration EC-IIT, that was present on the runway. The airplane performed the go-around and landed normally.",
+ notice:"The incident is being investigated by the CIAIAC of Spain. The NTSB has designated a U.S. Accredited Representative as the state of manufacture of the incident aircraft under the provisions of ICAO Annex 13.",auth:"CIAIAC (Spain)",role:"State of Manufacture",ref:["RI"]},
+{id:"DCA13WA103",ev:"DCA13WA103",date:"2013-05-31",loc:"Eindhoven, Netherlands",ac:"Boeing 737-800",reg:"EI-ENL",part:"(blank)",dmg:"None",words:672,def:"Nav system malfunction/failure",seq:[["Approach","Stall warn/stick-shaker/pusher",0],["Approach","Nav system malfunction/failure",1]],narr:"",
+ notice:"The Dutch Safety Board (DSB) has notified the NTSB of an incident involving a Boeing 737-800 that occurred on May 31, 2013. The NTSB has appointed a U.S. Accredited Representative to assist the DSB investigation under the provisions of ICAO Annex 13 as the State of Manufacturer and Design of the airplane.",auth:"Dutch Safety Board",role:"State of Design and Manufacture",ref:["SCF-NP"]},
+{id:"DCA13WA104",ev:"DCA13WA104",date:"2013-06-09",loc:"London, United Kingdom",ac:"Boeing 747-400",reg:"G-CIVA",part:"(blank)",dmg:"(blank)",words:661,def:"Fire/smoke (non-impact)",seq:[["Unknown","Fire/smoke (non-impact)",1]],narr:"",
+ notice:"The United Kingdom's Air Accidents Investigations Branch (AAIB) has notified the NTSB of an incident involving a Boeing 747-400 that occurred on June 9, 2013. The NTSB has appointed a U.S. Accredited Representative to assist the AAIB investigation under the provisions of ICAO Annex 13 as the State of Manufacturer and Design of the airplane.",auth:"AAIB (UK)",role:"State of Design and Manufacture",ref:["F-NI"],flags:["Aircraft damage is blank"]},
+{id:"ENG13WA024",ev:"ENG13WA024",date:"2013-04-28",loc:"Jeddah, Saudi Arabia",ac:"Boeing 777-300",reg:"HZ-AK16",part:"Non-U.S., commercial",dmg:"Minor",words:805,seq:[["Standing-engine(s) start-up","Unknown or undetermined",0]],
+ narr:"On April 28, 2013 a Saudi Arabian Airlines Boeing 777-300, HZ-AK16, equipped with two General Electric GE90-115B engines had been pushed back from the gate and was in the process of starting the No. 2 engine when the engine unexpectedly accelerated to a high power setting. The aircraft moved forward and could not be stopped with the brakes before it hit a parked push back tractor severely damaging the lower No. 2 engine nose cowl.",
+ notice:"The Kingdom of Saudi Arabia General Authority of Civil Aviation (GACA) is investigating the incident. As the state of manufacture of the engines and some airplane components, the NTSB has designated a United States Accredited Representative under the provisions of Annex 13.",auth:"GACA (Saudi Arabia)",role:"State of Manufacture (engines)",ref:["SCF-PP","GCOL"],flags:["Location repeats the country: “Saudi Arabia, Saudi Arabia”"]},
+{id:"ENG13WA030",ev:"ENG13WA030",date:"2013-05-25",loc:"Moscow, Russia",ac:"Boeing 777-200ER",reg:"EI-UNW",part:"Part 129 foreign",dmg:"None",words:731,
+ narr:"On May 25, 2013, at about 0810 UTC, a Russian-operated Transaero Boeing 777, during the climb after takeoff from Vnukovo-Moscow, had the No. 1 engine, a Pratt & Whitney PW4090, have increasing exhaust gas temperature and vibrations that was followed by an engine fire warning. The crew shutdown the engine and diverted to Sheremetyevo-Moscow. The post-landing examination of the engine revealed no fire damage, but three broken 2nd stage turbine blades.",
+ notice:"This incident is under the investigation of the Federal Air Transport Agency of the Ministry of Transport of the Russian Federation.",auth:"Rosaviatsia (Russia)",role:"not stated",ref:["SCF-PP"]},
+{id:"WPR13IA226",ev:"WPR13IA226",date:"2013-05-10",loc:"Phoenix, AZ",ac:"Boeing 737-7H4",reg:"N913WN",part:"Part 121 scheduled",dmg:"Minor",words:1500,def:"Ground collision",seq:[["Pushback/tow-engine start-up","Ground collision",1]],
+ narr:"While being pushed back from the gate by a tug in preparation for flight, the airplane collided with an airplane parked to its right. The pushback into an adjacent alleyway required the tug operator to accomplish a turn reversal to properly align the airplane. The tug operator and wing walker slowed down the tug's speed during the turn to ensure that they avoided baggage carts located near the right engine. The turn was performed too tightly, and, when the tug operator's and wing walker's attention was focused on clearing the nearby carts, the airplane's right winglet struck the parked, unoccupied airplane's left horizontal stabilizer and elevator.",
+ pc:"The failure of the tug operator and wing walker to adequately monitor the environment during pushback of the airplane from the gate in preparation for flight, which led to the collision of the airplane with an adjacently parked airplane.",
+ find:[["Personnel issues","Use of equip/system","Ground crew"],["Personnel issues","Monitoring other aircraft","Ground crew"]],ref:["GCOL"]},
+{id:"ENG13IA027",ev:"ENG13IA027",date:"2013-05-19",loc:"Atlanta, GA",ac:"Boeing 747-400F",reg:"B18701",part:"Part 129 foreign",dmg:"Minor",words:2980,def:"Aircraft structural failure",seq:[["Approach","Part(s) separation from AC",0],["Approach","Aircraft structural failure",1]],
+ narr:"The airplane experienced a partial separation of the right inboard foreflap during approach to the airport after the crew selected flaps 30. The crew performed a go-around and landed uneventfully. Examination of the outboard fitting that attaches the right inboard foreflap to the sequence carriage revealed a fracture in the lug. A portion of the fracture had a slow growth region consistent with fatigue that caused the lug to fail under normal flight conditions. Examination of the sequence carriages for both inboard foreflaps revealed several discrepancies with the bearings including incompatible parts, flat spots, play, binding, and roughness of operation. The manufacturer previously recommended specific maintenance tasks on the foreflaps and the FAA issued an airworthiness directive (AD 75-20-05) for mandatory inspections. Maintenance personnel failed to notice the fatigue cracking in the lug and the bearing anomalies during the dedicated foreflap maintenance tasks. The fitting (assembly P/N 65B11598-45) was 7075-T73 aluminum with fresh BMS 3-33 grease; the fuselage was punctured at body station 1720.",
+ pc:"Failure of the right inboard foreflap outboard fitting due to fatigue and bearing anomalies on the sequence carriages which resulted in the partial separation of the right inboard foreflap. Contributing to the incident was the failure of maintenance personnel to detect the fatigue cracking and bearing anomalies during dedicated inspections.",
+ find:[["Aircraft","Trailing edge flaps","Fatigue/wear/corrosion"],["Personnel issues","Scheduled/routine maintenance","Maintenance personnel"]],ents:["AD 75-20-05","P/N 65B11598-45","7075-T73","BMS 3-33","BS 1720","CVR/FDR"],sections:["History of flight","Damage to airplane","Aircraft information","Meteorological information","Flight recorders","Wreckage and impact","Tests and research","Additional information"],ref:["SCF-NP"]},
+{id:"DCA13MA081",ev:"DCA13MA081",date:"2013-04-29",loc:"Bagram, Afghanistan",ac:"Boeing 747-400 BCF",reg:"N949CA",part:"Part 121 non-scheduled",dmg:"Destroyed",words:1233,def:"Loss of control in flight",seq:[["Prior to flight","Aircraft loading event",0],["Initial climb","Loss of control in flight",1],["Uncontrolled descent","Flight control sys malf/fail",0]],
+ narr:"On April 29, 2013, about 1527 local time, a Boeing 747-400 BCF, N949CA, operated by National Air Cargo, Inc., dba National Airlines, crashed shortly after takeoff from Bagram Air Base, Bagram, Afghanistan. All seven crewmembers died, and the airplane was destroyed from impact forces and postcrash fire. The Part 121 supplemental cargo flight was destined for Dubai World Central.",
+ pc:"National Airlines' inadequate procedures for restraining special cargo loads, which resulted in the loadmaster's improper restraint of the cargo, which moved aft and damaged hydraulic systems Nos. 1 and 2 and horizontal stabilizer drive mechanism components, rendering the airplane uncontrollable. Contributing to the accident was the Federal Aviation Administration's inadequate oversight of National Airlines' handling of special cargo loads.",
+ find:[["Organizational issues","Adequacy of policy/proc","Operator"],["Personnel issues","Incorrect action selection","Other"],["Organizational issues","Oversight of operation","FAA/Regulator"],["Personnel issues","Lack of action","Other"],["Aircraft","(general)","Damaged/degraded"],["Aircraft","Stabilizer control system","Damaged/degraded"],["Aircraft","(general)","Attain/maintain not possible"]],ext:"NTSB/AAR-15/01",ref:["LOC-I"]}
+];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const key=r=>r.id+(r.rec?"·"+r.rec:"");
+const DISCLAIMER=273;
+
+/* ---------- routing ---------- */
+function route(r){
+  const m=r.id.match(/^[A-Z]{3}(\d{2})([A-Z]{2})\d+/); const code=m?m[2]:"";
+  const yr=+r.date.slice(0,4);
+  const hasPC=!!(r.pc)||!!r.occ; const hasFind=!!(r.occ||r.find);
+  let cls;
+  if(yr<2008) cls="legacy";
+  else if(code==="MA") cls="major";
+  else if(code==="WA" && !r.pc) cls="notification";
+  else cls=r.words>=2000?"full":"brief";
+  const evidence=cls==="notification"?"notification":"investigation";
+  return {code,yr,hasPC,hasFind,cls,evidence,train:evidence==="investigation"&&hasFind};
+}
+const CLSNAME={legacy:"Legacy coded record",notification:"Foreign notification",brief:"Domestic brief",full:"Domestic full factual",major:"Major investigation"};
+
+/* ---------- cleaning ---------- */
+const ABBR={ACFT:"aircraft",RWY:"runway",RWYS:"runways",PLT:"pilot",CTLR:"controller",CTLRS:"controllers",APCH:"approach",WX:"weather",FLT:"flight",ENGR:"engineer",INSP:"inspection",KTS:"knots",SYS:"system",DEG:"degrees",ALT:"altitude",PAA:"Pan Am",MI:"miles"};
+const REPAIR={LANDINGON:"LANDING ON",FAILEDDUE:"FAILED DUE",CLEAREDTO:"CLEARED TO",CONTROLLERWAS:"CONTROLLER WAS",VISUALRANGE:"VISUAL RANGE",REVEALEDNOSE:"REVEALED NOSE",THEFLT:"THE FLT",SPOILERDEPLOYMENT:"SPOILER DEPLOYMENT",BYMIAMI:"BY MIAMI",INA:"IN A"};
+const KEEP=new Set(["ATC","ILS","FDR","ARTCC","RVR","AGL","MSL","IFR","NTSB","SIGMETS","CESSNA","BOEING","MIAMI","COLUMBUS","TAMPA","OKAY"]);
+const PROPER={CESSNA:"Cessna",BOEING:"Boeing",MIAMI:"Miami",COLUMBUS:"Columbus",SIGMETS:"SIGMETs",OKAY:"okay"};
+function cleanLegacy(text){
+  const out=[];let nAbbr=0,nFix=0;
+  const toks=text.replace(/&/g," and ").replace(/(\w)\(/g,"$1 (").split(/(\s+)/);
+  for(const tok of toks){
+    if(/^\s+$/.test(tok)){out.push(tok);continue}
+    const m=tok.match(/^([^A-Za-z0-9#]*)(.*?)([^A-Za-z0-9]*)$/); let [_,pre,core,post]=m;
+    let fixed=null, parts=[core];
+    const bare=core.replace(/[()]/g,"");
+    if(REPAIR[core]){fixed=core;parts=REPAIR[core].split(" ");nFix++}
+    else if(core.startsWith("AUTO-SPOILERDEPLOYMENT")){fixed=core;parts=["AUTO-SPOILER","DEPLOYMENT"];nFix++}
+    const words=parts.map(w=>{
+      if(ABBR[w]){nAbbr++;return {t:ABBR[w],k:"abbr",o:w}}
+      const sub=w.match(/^([A-Z]+)\((\w+)\)$/);
+      if(sub){const a=sub[1],b=sub[2];return {t:(ABBR[a]||a.toLowerCase())+" ("+(ABBR[b]||b)+")",k:ABBR[b]?"abbr":"",o:w}}
+      if(PROPER[w]) return {t:PROPER[w],k:""};
+      if(KEEP.has(w)||/\d/.test(w)) return {t:w,k:""};
+      return {t:w.toLowerCase(),k:""};
+    });
+    let html=words.map(x=>x.k==="abbr"?`<mark title="${esc(x.o)} expanded">${esc(x.t)}</mark>`:esc(x.t)).join(" ");
+    let plain=words.map(x=>x.t).join(" ");
+    if(fixed){html=`<mark class="fix" title="${esc(fixed)} repaired">${html}</mark>`}
+    out.push({html:esc(pre)+html+esc(post),plain:pre+plain+post});
+  }
+  // sentence case
+  let html="",plain="",cap=true;
+  for(const o of out){
+    if(typeof o==="string"){html+=o;plain+=o;continue}
+    let h=o.html,p=o.plain;
+    if(cap){h=h.replace(/^((?:<[^>]+>|[^A-Za-z])*)([a-z])/,(s,a,b)=>a+b.toUpperCase());p=p.replace(/^([^A-Za-z]*)([a-z])/,(s,a,b)=>a+b.toUpperCase());}
+    cap=/[.!?]['"]?$/.test(p) && !/^[A-Z]\.$/.test(p);
+    html+=h;plain+=p;
+  }
+  return {html,plain,nAbbr,nFix};
+}
+function eventText(r){return r.occ?cleanLegacy(r.narr).plain:[r.narr,r.pc].filter(Boolean).join(" ")}
+
+/* ---------- verbalization ---------- */
+function verbalize(r){
+  const lines=[];
+  if(r.occ){
+    r.occ.forEach((o,i)=>{
+      lines.push(`Occurrence ${i+1}: ${o.o.toLowerCase()}. Phase: ${o.ph.toLowerCase()}.`);
+      o.f.forEach(f=>{
+        const flag=f.startsWith("(C)")?"Cause":f.startsWith("(F)")?"Factor":"Finding";
+        const body=f.replace(/^\((C|F)\)\s*/,"").split(" - ").map(s=>s.toLowerCase().replace(/,/g,", "));
+        lines.push(`${flag}: ${body[0]}${body[1]?" – "+body[1]:""}${body[2]?" ("+body[2]+")":""}.`);
+      });
+    });
+  }
+  if(r.seq) r.seq.forEach(s=>lines.push(`Event: ${s[1]} during ${s[0].toLowerCase()}${s[2]?" (defining event)":""}.`));
+  if(r.find) r.find.forEach(f=>lines.push(`Finding: ${f[0].toLowerCase()} › ${f[1]} – ${f[2]}.`));
+  return lines;
+}
+function synopsis(r){
+  const ro=route(r);
+  let what="",phase="";
+  if(r.occ){what=r.occ[0].o.toLowerCase();phase=r.occ[0].ph.toLowerCase()}
+  if(r.seq){const d=r.seq.find(s=>s[2])||r.seq[0];what=d[1];phase=d[0].toLowerCase()}
+  if(!what) what="event type not recorded";
+  return `${r.ac} (${r.reg}) · ${r.part} · ${r.loc} · ${r.date}. ${phase?phase.charAt(0).toUpperCase()+phase.slice(1)+": ":""}${what}. Damage: ${r.dmg}.`+(ro.cls==="notification"?` Investigated by ${r.auth}; NTSB is accredited representative.`:"")+(r.ext?` Full report: ${r.ext}.`:"");
+}
+
+/* ---------- tokenization, BM25, LSA ---------- */
+const STOP=new Set("a an the and or of to in on at for with by from as was were is be been had has have that this which it its into than then their there they he his him her she not no nor but if so while when where after before during about also both all any each other such only same over under up down out off very more most some these those who whom what our we you your i".split(" "));
+const SYN={incursion:"runway vehicle truck intersection hold short go-around",runway:"runway",truck:"truck vehicle",vehicle:"vehicle truck",bird:"birdstrike vulture ingested",birdstrike:"birdstrike vulture ingested",windshear:"windshear wind downdraft gusting",fire:"fire smoke warning",smoke:"smoke fire",engine:"engine turbine compressor blades",gear:"landing gear tire wheel steering",maintenance:"maintenance inspection personnel",turbulence:"turbulence thunderstorm seat belt",fuel:"fuel mayday alternate",collision:"collision struck collided",ground:"ground taxi pushback tug",pushback:"pushback tug wing walker",separation:"separation conflict collided controller",atc:"controller tower clearance",fog:"fog visibility ceiling obscuration",night:"night dark",flap:"flaps foreflap fitting",fatigue:"fatigue crack fracture",cargo:"cargo loading restraint",stall:"stall shaker",tail:"tailstrike tail strike"};
+function stem(w){if(w.length>6&&w.endsWith("ing"))return w.slice(0,-3);if(w.length>5&&w.endsWith("ed"))return w.slice(0,-2);if(w.length>4&&w.endsWith("es")&&!w.endsWith("ses"))return w.slice(0,-2);if(w.length>3&&w.endsWith("s")&&!w.endsWith("ss"))return w.slice(0,-1);return w}
+function tok(s){return (s.toLowerCase().match(/[a-z0-9][a-z0-9\-\/]*/g)||[]).flatMap(w=>w.split(/[\/]/)).filter(w=>w&&!STOP.has(w)&&w.length>1).map(stem)}
+function expandQuery(q){const extra=[];(q.toLowerCase().match(/[a-z]+/g)||[]).forEach(w=>{if(SYN[w])extra.push(SYN[w])});return extra.join(" ")}
+
+const DOCS=R.map(r=>({full:tok([eventText(r),verbalize(r).join(" "),r.ac,r.def||""].join(" ")),find:tok([verbalize(r).join(" "),r.def||""].join(" "))}));
+function bm25Index(field){
+  const N=DOCS.length,df={},dl=DOCS.map(d=>d[field].length);const avg=dl.reduce((a,b)=>a+b,0)/N||1;
+  DOCS.forEach(d=>new Set(d[field]).forEach(t=>df[t]=(df[t]||0)+1));
+  const tf=DOCS.map(d=>{const m={};d[field].forEach(t=>m[t]=(m[t]||0)+1);return m});
+  const idf=t=>Math.log(1+(N-(df[t]||0)+.5)/((df[t]||0)+.5));
+  const w=(i,t)=>{const f=tf[i][t]||0;if(!f)return 0;return idf(t)*f*2.2/(f+1.2*(1-.75+.75*dl[i]/avg))};
+  return {score:q=>DOCS.map((_,i)=>q.reduce((s,t)=>s+w(i,t),0)),top:(i,k)=>Object.keys(tf[i]).map(t=>[t,w(i,t)]).sort((a,b)=>b[1]-a[1]).slice(0,k),df,idf};
+}
+const BM_FULL=bm25Index("full"),BM_FIND=bm25Index("find");
+
+// TF-IDF + LSA via eigen-decomposition of the document kernel
+const VOC={};DOCS.forEach(d=>new Set(d.full).forEach(t=>VOC[t]=(VOC[t]||0)+1));
+const NDOC=DOCS.length;
+function tfidf(tokens){const m={};tokens.forEach(t=>m[t]=(m[t]||0)+1);let n=0;for(const t in m){m[t]=VOC[t]?(1+Math.log(m[t]))*Math.log(NDOC/VOC[t]+1):0;n+=m[t]*m[t]}n=Math.sqrt(n)||1;for(const t in m)m[t]/=n;return m}
+const X=DOCS.map(d=>tfidf(d.full));
+const dot=(a,b)=>{let s=0;for(const t in a)if(b[t])s+=a[t]*b[t];return s};
+function jacobi(A){const n=A.length;const V=A.map((_,i)=>A.map((_,j)=>i===j?1:0));A=A.map(r=>r.slice());
+  for(let sweep=0;sweep<60;sweep++){let off=0;for(let p=0;p<n;p++)for(let q=p+1;q<n;q++)off+=A[p][q]*A[p][q];if(off<1e-14)break;
+    for(let p=0;p<n;p++)for(let q=p+1;q<n;q++){if(Math.abs(A[p][q])<1e-14)continue;const th=(A[q][q]-A[p][p])/(2*A[p][q]);const t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1));const c=1/Math.sqrt(t*t+1),s=t*c;
+      for(let k=0;k<n;k++){const a=A[k][p],b=A[k][q];A[k][p]=c*a-s*b;A[k][q]=s*a+c*b}
+      for(let k=0;k<n;k++){const a=A[p][k],b=A[q][k];A[p][k]=c*a-s*b;A[q][k]=s*a+c*b}
+      for(let k=0;k<n;k++){const a=V[k][p],b=V[k][q];V[k][p]=c*a-s*b;V[k][q]=s*a+c*b}}}
+  return A.map((r,i)=>({val:r[i],vec:V.map(row=>row[i])})).sort((a,b)=>b.val-a.val)}
+const KERN=X.map(a=>X.map(b=>dot(a,b)));
+const EIG=jacobi(KERN).filter(e=>e.val>1e-9).slice(0,10);
+const EMB=X.map((_,i)=>EIG.map(e=>e.vec[i]*Math.sqrt(e.val)));
+const norm=v=>Math.sqrt(v.reduce((s,x)=>s+x*x,0))||1;
+const cos=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0)/(norm(a)*norm(b));
+function embedQuery(tokens){const q=tfidf(tokens);const s=X.map(x=>dot(q,x));return EIG.map(e=>e.vec.reduce((acc,u,i)=>acc+u*s[i],0)/Math.sqrt(e.val))}
+
+/* ---------- code vectors + rule map ---------- */
+const OCCMAP={"NEAR COLLISION BETWEEN AIRCRAFT":["MAC"],"UNDERSHOOT":["USOS"],"AIRFRAME/COMPONENT/SYSTEM FAILURE/MALFUNCTION":["SCF-NP"],"OTHER GEAR COLLAPSED":["ARC"],"HARD LANDING":["ARC"],"ON GROUND/WATER COLLISION WITH OBJECT":["GCOL"]};
+const DEFMAP={"Birdstrike":["BIRD"],"Ground collision":["GCOL"],"Tailstrike":["ARC"],"Nav system malfunction/failure":["SCF-NP"],"Fire/smoke (non-impact)":["F-NI"],"Loss of control in flight":["LOC-I"],"Aircraft structural failure":["SCF-NP"]};
+function ruleMap(r){
+  const labels=new Set(),why=[];
+  if(r.occ) r.occ.forEach(o=>{
+    const fl=o.f.join(" ");
+    if(OCCMAP[o.o]){OCCMAP[o.o].forEach(l=>labels.add(l));why.push(`${o.o} → ${OCCMAP[o.o].join(", ")}`)}
+    else if(o.o==="IN FLIGHT ENCOUNTER WITH WEATHER"){const l=/WINDSHEAR/.test(fl)?"WSTRW":/TURBULENCE/.test(fl)?"TURB":null;if(l){labels.add(l);why.push(`${o.o} + ${l==="WSTRW"?"windshear":"turbulence"} finding → ${l}`)}}
+    else if(o.o==="IN FLIGHT COLLISION WITH OBJECT"&&/VEHICLE/.test(fl)&&/LANDING/.test(o.ph)){labels.add("RI");why.push(`Collision with object + vehicle + landing phase → RI`)}
+    else why.push(`${o.o}: no rule`);
+  });
+  if(r.def){if(DEFMAP[r.def]){DEFMAP[r.def].forEach(l=>labels.add(l));why.push(`Defining event “${r.def}” → ${DEFMAP[r.def].join(", ")}`)}}
+  else if(!r.occ) why.push("No defining event and no findings: nothing to map");
+  return {labels:[...labels],why};
+}
+function codeTokens(r){
+  const t=[];
+  if(r.occ) r.occ.forEach(o=>{t.push("occ:"+o.o);t.push("phase:"+o.ph.split(" - ")[0]);o.f.forEach(f=>{const p=f.replace(/^\((C|F)\)\s*/,"").split(" - ");t.push("subj:"+p[0]);if(p[2])t.push("agent:"+p[2]);if(f.startsWith("(C)"))t.push("cause:"+p[0])})});
+  if(r.def) t.push("def:"+r.def);
+  if(r.seq) r.seq.forEach(s=>t.push("phase:"+s[0].toUpperCase()));
+  if(r.find) r.find.forEach(f=>{t.push("cat:"+f[0]);t.push("subj:"+f[1].toUpperCase());t.push("agent:"+f[2].toUpperCase())});
+  ruleMap(r).labels.forEach(l=>t.push("cictt:"+l));
+  return [...new Set(t)];
+}
+const CODES=R.map(codeTokens);
+const CDF={};CODES.forEach(c=>c.forEach(t=>CDF[t]=(CDF[t]||0)+1));
+function codeCos(i,j){const a=CODES[i],b=new Set(CODES[j]);if(!a.length||!b.size)return 0;const w=t=>Math.log(NDOC/CDF[t]+1);let s=0,na=0,nb=0;a.forEach(t=>{na+=w(t)**2;if(b.has(t))s+=w(t)**2});b.forEach(t=>nb+=w(t)**2);return s/Math.sqrt(na*nb)}
+
+/* ---------- UI state ---------- */
+let cur=R.findIndex(r=>r.id==="ANC84FA026");
+const sel=$("#rec");
+(function fillSelect(){
+  const g1=document.createElement("optgroup");g1.label="1983–84 records";const g2=document.createElement("optgroup");g2.label="2013 CAROL records";
+  R.forEach((r,i)=>{const o=document.createElement("option");o.value=i;o.textContent=`${r.id}${r.rec?" · "+r.rec:""} — ${r.ac}, ${r.loc}`;(route(r).yr<2008?g1:g2).appendChild(o)});
+  sel.append(g1,g2);sel.value=cur;
+  sel.addEventListener("change",()=>{cur=+sel.value;renderAll()});
+})();
+
+/* ---------- flow ---------- */
+const STAGES=[
+ {t:"Ingest",s:"CAROL API JSON",what:["Pull structured fields from the CAROL API, not the rendered PDF","Snapshot date and source table stored with every record","Major reports: fetch the AAR PDF and dockets as children"],now:r=>`${r.words.toLocaleString()} rendered PDF words. Structured content: ${r.occ?r.occ.reduce((s,o)=>s+o.f.length,0)+" legacy findings":(r.find?r.find.length+" coded findings":"no findings")}, ${r.seq?r.seq.length+" sequence events":"no event sequence"}.`},
+ {t:"Route",s:"report class + evidence",what:["Classify by NTSB number (WA / MA / IA / LA / FA) and content","Set evidence level: investigation or notification","Decide training eligibility before anything is embedded"],now:r=>{const o=route(r);return `${CLSNAME[o.cls]} · evidence: ${o.evidence} · ${o.train?"eligible as a training label":"not a training label"}.`}},
+ {t:"Clean",s:"strip, case, expand, repair",what:["Strip disclaimer, Annex 13 blocks and empty field labels","Sentence case for dense vectors; raw kept for BM25","Expand abbreviations; repair run-on words with a logged diff"],now:r=>{if(r.occ){const c=cleanLegacy(r.narr);return `${c.nAbbr} abbreviations expanded, ${c.nFix} run-ons repaired, ${DISCLAIMER}-word disclaimer dropped.`}const kept=eventText(r).split(/\s+/).filter(Boolean).length;return `${kept} words kept from ${r.words}; agency block moved to metadata.`}},
+ {t:"Structure",s:"events, findings, synopsis",what:["Group aircraft records under one event","Verbalize coded findings into controlled sentences","Generate a context header that adds missing context"],now:r=>{const n=R.filter(x=>x.ev===r.ev).length;return `${n} aircraft record${n>1?"s":""} under event ${r.ev}; ${verbalize(r).length} verbalized finding lines.`}},
+ {t:"Embed",s:"named vectors",what:["Several named vectors per record, each fed different text","Dense for meaning, sparse for exact terms, codes for causal profile","Low weight for notifications"],now:r=>`Vectors: ${vectorsFor(r).filter(v=>v.on).map(v=>v.name).join(", ")}.`},
+ {t:"Index",s:"vectors + payload",what:["One point per aircraft record in a store with named, sparse and multi-vectors","Payload holds filters, raw codes, label provenance and model version","Protection-class filters enforced at query time"],now:r=>`Payload: event_id=${r.ev}, report_class=${route(r).cls}, evidence_level=${route(r).evidence}${r.auth?", authority="+r.auth:""}.`},
+ {t:"Retrieve",s:"hybrid → RRF → rerank",branch:true,what:["Query expansion, then dense and sparse channels in parallel","Reciprocal rank fusion, group by event, cross-encoder rerank","Answer cites event and section; claims are checked"],now:r=>`Try the hybrid search below; this record is ${route(r).evidence==="notification"?"down-weighted and cited as a pointer to "+r.auth:"citable as investigation evidence"}.`},
+ {t:"Classify",s:"rules → kNN → set → route",branch:true,what:["C1 deterministic code → CICTT rules","C2 kNN and encoder scores, calibrated candidate set","Auto-assign, adjudicate with an SLM, or route to SMEs"],now:r=>{const d=classify(r);return `${d.decision}: ${d.reason}`}},
+ {t:"Evaluate",s:"gold set + gates",what:["Code-derived qrels for development, synthetic queries for regression","SME-judged pooled set gates every release","Split by event and by time"],now:r=>route(r).train?"Usable in code-derived qrels and as a classification test item.":"Retrieval test target only; never a gold label until the authority’s report is attached."}
+];
+let curStage=1;
+function renderStages(){
+  $("#stages").innerHTML=STAGES.map((s,i)=>`<button class="stage${s.branch?" branch":""}" aria-pressed="${i===curStage}" data-i="${i}"><span class="n">${String(i+1).padStart(2,"0")}</span><span class="t">${s.t}</span><span class="s">${s.s}</span></button>`).join("");
+  $("#stages").querySelectorAll(".stage").forEach(b=>b.onclick=()=>{curStage=+b.dataset.i;renderStages()});
+  const s=STAGES[curStage],r=R[cur];
+  $("#stageDetail").innerHTML=`<div style="display:flex;flex-direction:column;gap:10px"><h3>${String(curStage+1).padStart(2,"0")} · ${s.t}</h3><ul>${s.what.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div><div class="now"><p class="eyebrow">For ${esc(key(r))}</p><p>${esc(s.now(r))}</p></div>`;
+}
+
+/* ---------- route panel ---------- */
+function renderRoute(){
+  const r=R[cur],o=route(r);
+  const rules=[
+    [o.yr<2008,`Event year ${o.yr} ${o.yr<2008?"< 2008: legacy coding scheme":"≥ 2008: CICTT-based defining event"}`],
+    [o.code==="WA",`Number contains “${o.code}”${o.code==="WA"?": foreign-led investigation":o.code==="MA"?": major investigation":""}`],
+    [!!r.pc||!!r.occ,`Probable cause present`],
+    [!!(r.occ||r.find),`Investigator findings present`],
+    [!!r.def,`Defining event present${r.def?": “"+r.def+"”":""}`],
+    [r.words>=2000,`${r.words.toLocaleString()} rendered words${r.words>=2000?" (full factual)":""}`]
+  ];
+  $("#routeRules").innerHTML=rules.map(([y,t])=>`<li><span class="tick ${y?"y":"n"}">${y?"✓":"–"}</span><span>${esc(t)}</span></li>`).join("");
+  const rows=[["report_class",`<span class="badge cls-${o.cls}">${CLSNAME[o.cls]}</span>`],["evidence_level",`<span class="badge ${o.evidence==="investigation"?"good":"warn"}">${o.evidence}</span>`],["training_label",o.train?"eligible":"excluded"],["event_id",esc(r.ev)+(R.filter(x=>x.ev===r.ev).length>1?` (${R.filter(x=>x.ev===r.ev).length} aircraft records)`:"")],["authority",esc(r.auth||"NTSB")],["us_role",esc(r.role||"lead investigator")],["external_ref",esc(r.ext||(o.cls==="notification"?"authority final report (to fetch)":"—"))],["data_quality",r.flags?r.flags.map(esc).join("<br>"):"no conflicts found"]];
+  $("#routeOut").innerHTML=rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+
+/* ---------- clean panel ---------- */
+function renderClean(){
+  const r=R[cur],o=route(r);
+  const kept=eventText(r).split(/\s+/).filter(Boolean).length;
+  const agency=r.notice?r.notice.split(/\s+/).length:0;
+  const other=Math.max(0,r.words-kept-DISCLAIMER-agency);
+  const parts=[["Kept event text",kept,"var(--blue)"],["Agency block → metadata",agency,"var(--accent)"],["NTSB disclaimer",DISCLAIMER,"var(--muted)"],["Field labels, tables, headers",other,"var(--rule)"]].filter(p=>p[1]>0);
+  $("#comp").innerHTML=parts.map(p=>`<span style="width:${p[1]/r.words*100}%;background:${p[2]}" title="${p[0]}: ${p[1]} words"></span>`).join("");
+  $("#compLegend").innerHTML=parts.map(p=>`<span><span class="sw" style="background:${p[2]}"></span>${p[0]} · ${p[1]} (${Math.round(p[1]/r.words*100)}%)</span>`).join("");
+  if(r.occ){
+    const c=cleanLegacy(r.narr);
+    $("#cleanIntro").textContent=`ALL-CAPS shorthand is converted to sentence case, ${c.nAbbr} abbreviations are expanded and ${c.nFix} run-on words are repaired. The raw text stays in the BM25 field and remains the citation source.`;
+    $("#rawText").textContent=r.narr;
+    $("#cleanText").innerHTML=c.html;
+  }else{
+    $("#cleanIntro").textContent=o.cls==="notification"?"For a foreign notification the work is subtraction: the Annex 13 block becomes metadata and only the event description is embedded.":"Modern text is already mixed case; cleaning removes the template and keeps the analysis, probable cause and factual narrative as separate fields.";
+    $("#rawText").textContent=[r.narr,r.notice,"[+ "+DISCLAIMER+"-word NTSB disclaimer and empty field labels]"].filter(Boolean).join("\n\n");
+    $("#cleanText").innerHTML=(r.narr?esc(r.narr):`<span class="muted">No event description in this record. Only the defining event${r.def?" (“"+esc(r.def)+"”)":""} carries event content.</span>`)+(r.pc?`<br><br><b>Probable cause.</b> ${esc(r.pc)}`:"")+(r.notice?`<br><br><mark class="drop">${esc(r.notice)}</mark>`:"");
+  }
+  const v=verbalize(r);
+  $("#verbText").innerHTML=v.length?v.map(esc).join("<br>"):`<span class="muted">No findings to verbalize.</span>`;
+  $("#synText").textContent=synopsis(r);
+}
+
+/* ---------- embedding types ---------- */
+function vectorsFor(r){
+  const o=route(r);const hasText=!!(r.narr);const hasCodes=CODES[cur]?.length>0;
+  const idx=R.indexOf(r);
+  return [
+    {name:"narr_dense",on:hasText,src:hasText?"Cleaned event narrative":"No event description in this record",w:o.evidence==="notification"?"low weight":""},
+    {name:"find_dense",on:!!(r.occ||r.find||r.seq),src:"Verbalized findings and event sequence"},
+    {name:"synopsis_dense",on:true,src:"Context header: aircraft, operation, phase, event, damage"},
+    {name:"cause_dense",on:!!r.pc,src:r.pc?"Probable-cause sentence":"No probable-cause sentence"},
+    {name:"lex_sparse",on:true,src:"BM25 over raw + expanded text"},
+    {name:"code_sparse",on:CODES[idx].length>0,src:CODES[idx].length?`${CODES[idx].length} code tokens incl. rule-mapped CICTT`:"No codes"},
+    {name:"section_chunks",on:o.cls==="full"||o.cls==="major",src:o.cls==="full"?`${r.sections.length} report sections with context headers`:o.cls==="major"?"Sections of "+r.ext+" (fetched)":"Not needed for a short record"},
+    {name:"page_image",on:o.cls==="major",src:o.cls==="major"?"Figure-heavy AAR pages (FDR plots, diagrams)":"No figure pages"}
+  ];
+}
+const TYPES=[
+ {id:"dense",name:"Dense",what:"A bi-encoder maps a whole text to one vector. Similar meaning lands close together even with different words.",use:"Semantic search over narratives, synopses and findings.",watch:"Misses exact identifiers; needs clean sentence-case text.",ex:"Qwen3-Embedding, BGE-M3 dense, Nemotron"},
+ {id:"sparse",name:"Sparse lexical",what:"A vector over vocabulary terms, weighted by rarity (BM25) or learned (SPLADE). Only words present in the text get weight.",use:"Exact terms: RVR values, runway IDs, part numbers, AD numbers.",watch:"Cannot match paraphrase without query expansion.",ex:"BM25, SPLADE, BGE-M3 sparse"},
+ {id:"late",name:"Late interaction",what:"Keeps one vector per token. Each query token finds its best-matching document token (MaxSim) and the scores are summed.",use:"Reranking candidates; robust to rare words and partial matches.",watch:"Storage grows with tokens; use as a rerank-only channel.",ex:"ColBERT v2, Jina-ColBERT, BGE-M3 multivector"},
+ {id:"multi",name:"Named multi-vector",what:"One record carries several named vectors, each fed different text, so a query can target what happened, why it happened, or the context.",use:"Field-aware retrieval and filtering on one point.",watch:"More vectors to keep in sync; version every one.",ex:"Qdrant named vectors, Milvus multi-vector fields"},
+ {id:"code",name:"Structured codes",what:"A sparse, IDF-weighted multi-hot vector over investigator codes: occurrence, phase, subject, agent, cause flag, mapped CICTT.",use:"“Same causal profile” similarity and kNN classification.",watch:"Different coding schemes share no tokens until harmonized.",ex:"TF-IDF multi-hot, optional SVD to 128–256 dims"},
+ {id:"graph",name:"Graph",what:"Events, aircraft, occurrences, findings, agents and safety recommendations as linked nodes; node2vec or GNNs embed the structure.",use:"Multi-hop questions and causal-structure clustering.",watch:"Beat the multi-hot baseline before investing in GNNs.",ex:"node2vec, R-GCN, HGT"},
+ {id:"visual",name:"Visual document",what:"Page images are embedded directly as patch vectors, so figures, plots and layouts are searchable without OCR.",use:"Figure-heavy pages of major reports: FDR plots, ADS-B tracks, wreckage diagrams.",watch:"Weaker than text embeddings on dense text pages.",ex:"ColPali, ColQwen2.5"}
+];
+let curType="dense";
+function renderTabs(){
+  $("#tabs").innerHTML=TYPES.map(t=>`<button class="tab" role="tab" aria-selected="${t.id===curType}" data-id="${t.id}">${t.name}</button>`).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{curType=b.dataset.id;renderTabs();renderType()});
+}
+function neighbours(i,k){return R.map((_,j)=>[j,cos(EMB[i],EMB[j])]).filter(([j])=>R[j].ev!==R[i].ev).sort((a,b)=>b[1]-a[1]).slice(0,k)}
+function barRows(rows,max,color){return `<div class="bars">${rows.map(([l,v,t])=>`<div class="brow"><span class="lab" title="${esc(t||l)}">${esc(l)}</span><span class="track"><span class="fill" style="display:block;width:${Math.max(2,v/max*100)}%;${color?"background:"+color:""}"></span></span><span class="val">${v.toFixed(2)}</span></div>`).join("")}</div>`}
+function renderType(){
+  const t=TYPES.find(x=>x.id===curType),r=R[cur];
+  const left=`<div class="card"><h3>${t.name}</h3><p>${esc(t.what)}</p><div class="facts"><div class="fact"><b>Use for</b><span>${esc(t.use)}</span></div><div class="fact"><b>Watch for</b><span>${esc(t.watch)}</span></div><div class="fact"><b>Examples</b><span>${esc(t.ex)}</span></div></div></div>`;
+  let right="";
+  if(t.id==="dense"){
+    const v=EMB[cur],mx=Math.max(...EMB.flat().map(Math.abs));
+    const nb=neighbours(cur,5);
+    right=`<div class="card"><h3>${esc(key(r))} as a 10-dimension vector</h3><div class="vecstrip">${v.map(x=>`<div title="${x.toFixed(3)}" style="background:${x>=0?"var(--blue)":"var(--accent)"};opacity:${(0.15+0.85*Math.abs(x)/mx).toFixed(2)}"></div>`).join("")}</div><p class="note">Blue positive, orange negative; strength = magnitude. LSA stand-in for a neural embedder.</p>${scatter()}<h3>Nearest events by cosine</h3>${barRows(nb.map(([j,s])=>[key(R[j]),s,R[j].ac]),1)}</div>`;
+  }else if(t.id==="sparse"){
+    const top=BM_FULL.top(cur,12);const mx=top[0]?.[1]||1;
+    right=`<div class="card"><h3>Highest-weighted terms in ${esc(key(r))}</h3>${barRows(top.map(([w,s])=>[w,s]),mx,"var(--accent)")}<p class="note">BM25 weight = term frequency × rarity across the 25 records. Rare, specific terms dominate; the ${DISCLAIMER}-word disclaimer would add nothing but noise if it were indexed.</p></div>`;
+  }else if(t.id==="late"){
+    right=`<div class="card"><h3>MaxSim against ${esc(key(r))}</h3><p class="note">Query from the search box below. Each query token takes its best match among the document’s tokens.</p><div id="lateBox"></div></div>`;
+  }else if(t.id==="multi"){
+    right=`<div class="card"><h3>Vectors created for ${esc(key(r))}</h3><div class="vectors">${vectorsFor(r).map(v=>`<div class="vrow${v.on?"":" off"}"><code>${v.name}</code><p>${esc(v.src)}${v.w?` · <b>${v.w}</b>`:""}</p></div>`).join("")}</div></div>`;
+  }else if(t.id==="code"){
+    const toks=CODES[cur];const nb=R.map((_,j)=>[j,codeCos(cur,j)]).filter(([j,s])=>R[j].ev!==r.ev&&s>0).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    right=`<div class="card"><h3>Code tokens for ${esc(key(r))}</h3><div class="chips">${toks.length?toks.map(x=>`<span class="chip${x.startsWith("cause:")?" cause":x.startsWith("cictt:")?" cictt":""}">${esc(x.toLowerCase())}</span>`).join(""):`<span class="muted">No codes: this record has neither findings nor a defining event.</span>`}</div><h3>Nearest by code profile</h3>${nb.length?barRows(nb.map(([j,s])=>[key(R[j]),s]),1,"var(--c-legacy)"):`<p class="muted">No other record shares a code token.</p>`}<p class="note">Orange = cause-flagged subjects; blue = rule-mapped CICTT, the only tokens two coding schemes can share.</p></div>`;
+  }else if(t.id==="graph"){
+    right=`<div class="card"><h3>Graph for ${esc(r.ev)}</h3><div class="svgbox">${graphSVG(r)}</div></div>`;
+  }else{
+    const o=route(r);
+    right=`<div class="card"><h3>For ${esc(key(r))}</h3><p>${o.cls==="major"?`Applies after ${esc(r.ext)} is fetched: its flight-data plots, cargo-loading diagrams and wreckage figures would be indexed as page images beside the text chunks.`:"No figure-heavy pages in this record. Text embeddings cover it; a visual index would only add cost."}</p><p class="note">Text-dense report pages are better served by text embeddings; route only figure pages here.</p></div>`;
+  }
+  $("#typePanel").innerHTML=left+right;
+  if(t.id==="late") renderLate();
+}
+function scatter(){
+  const W=520,H=280,P=28;const xs=EMB.map(e=>e[1]||0),ys=EMB.map(e=>e[2]||0);
+  const sx=v=>P+(v-Math.min(...xs))/((Math.max(...xs)-Math.min(...xs))||1)*(W-2*P),sy=v=>H-P-(v-Math.min(...ys))/((Math.max(...ys)-Math.min(...ys))||1)*(H-2*P);
+  const col={legacy:"var(--c-legacy)",notification:"var(--c-notice)",brief:"var(--c-dom)",full:"var(--c-dom)",major:"var(--c-major)"};
+  const nb=new Set(neighbours(cur,5).map(([j])=>j));
+  const lines=[...nb].map(j=>`<line x1="${sx(xs[cur])}" y1="${sy(ys[cur])}" x2="${sx(xs[j])}" y2="${sy(ys[j])}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>`).join("");
+  const pts=R.map((r,i)=>`<circle cx="${sx(xs[i]).toFixed(1)}" cy="${sy(ys[i]).toFixed(1)}" r="${i===cur?7:4.5}" fill="${col[route(r).cls]}" stroke="${i===cur?"var(--ink)":"none"}" stroke-width="2"><title>${esc(key(r))}</title></circle>`).join("");
+  const lab=`<text x="${Math.min(sx(xs[cur])+10,W-110)}" y="${sy(ys[cur])-10}" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--ink)">${esc(R[cur].id)}</text>`;
+  return `<div class="svgbox"><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px" role="img" aria-label="Two-dimensional map of all records">${lines}${pts}${lab}</svg></div><div class="legend"><span><span class="sw" style="background:var(--c-legacy)"></span>legacy</span><span><span class="sw" style="background:var(--c-notice)"></span>notification</span><span><span class="sw" style="background:var(--c-dom)"></span>domestic</span><span><span class="sw" style="background:var(--c-major)"></span>major</span><span>dashed = 5 nearest</span></div>`;
+}
+function trigrams(w){const s=` ${w} `;const g=new Set();for(let i=0;i<s.length-2;i++)g.add(s.slice(i,i+3));return g}
+function tokSim(a,b){if(a===b)return 1;for(const k in SYN){const grp=new Set([k,...SYN[k].split(" ").map(stem)]);if(grp.has(a)&&grp.has(b))return .8}const A=trigrams(a),B=trigrams(b);let n=0;A.forEach(x=>{if(B.has(x))n++});return n/(A.size+B.size-n)}
+function renderLate(){
+  const box=$("#lateBox");if(!box)return;
+  const q=[...new Set(tok($("#q").value))];const d=[...new Set(DOCS[cur].full)];
+  if(!q.length||!d.length){box.innerHTML=`<p class="muted">Type a query below to see token matches.</p>`;return}
+  const rows=q.map(t=>{let best=["",0];d.forEach(x=>{const s=tokSim(t,x);if(s>best[1])best=[x,s]});return [t,best[0],best[1]]});
+  const total=rows.reduce((s,r)=>s+r[2],0);
+  box.innerHTML=`<div class="bars">${rows.map(([t,b,s])=>`<div class="brow"><span class="lab">${esc(t)} → ${esc(b)}</span><span class="track"><span class="fill" style="display:block;width:${Math.max(2,s*100)}%"></span></span><span class="val">${s.toFixed(2)}</span></div>`).join("")}</div><p class="mono" style="font-size:13px">MaxSim total ${total.toFixed(2)} of ${rows.length.toFixed(0)} possible</p><p class="note">Token similarity here: exact = 1, synonym = 0.8, else character-trigram overlap. ColBERT uses contextual token embeddings instead.</p>`;
+}
+function graphSVG(r){
+  const recs=R.filter(x=>x.ev===r.ev);const nodes=[],edges=[];
+  const W=640;let y=24;
+  const add=(id,label,x,yy,kind)=>{nodes.push({id,label,x,y:yy,kind});return id};
+  add("ev",r.ev,W/2,y,"event");
+  y+=70;
+  recs.forEach((x,i)=>{add("ac"+i,x.ac.replace("McDonnell Douglas","MD"),W/2+(i-(recs.length-1)/2)*200,y,"ac");edges.push(["ev","ac"+i])});
+  const map=ruleMap(r).labels;
+  map.forEach((l,i)=>{add("c"+i,"CICTT "+l,W-80,24+i*38,"cictt");edges.push(["ev","c"+i,"rule map"])});
+  if(r.auth){add("au",r.auth,80,24,"auth");edges.push(["ev","au","led by"])}
+  if(r.ext){add("aar",r.ext,80,24,"auth");edges.push(["ev","aar","full report"])}
+  y+=70;
+  const occs=r.occ?r.occ.map(o=>({l:o.o.length>34?o.o.slice(0,32)+"…":o.o,ph:o.ph.split(" - ")[0],f:o.f})):r.seq?r.seq.map(s=>({l:s[1],ph:s[0],f:[],d:s[2]})):[];
+  const fnd=r.occ?[]:(r.find||[]);
+  const nO=Math.max(occs.length,1);
+  occs.forEach((o,i)=>{const x=(i+.5)*W/nO;add("o"+i,`${o.l}`,x,y,o.d?"def":"occ");edges.push(["ac0","o"+i,o.ph.toLowerCase()])});
+  y+=72;
+  let fy=y;const fl=[];
+  occs.forEach((o,i)=>o.f.slice(0,4).forEach((f,k)=>{const cause=f.startsWith("(C)");const p=f.replace(/^\((C|F)\)\s*/,"").split(" - ");fl.push({lab:(cause?"C · ":f.startsWith("(F)")?"F · ":"")+p[0].slice(0,26),agent:p[2],par:"o"+i,cause})}));
+  fnd.forEach(f=>fl.push({lab:f[1].slice(0,28),agent:f[2],par:occs.length?"o0":"ac0",cause:true,cat:f[0]}));
+  const nF=Math.max(fl.length,1);const cols=Math.min(nF,4);
+  fl.forEach((f,i)=>{const x=((i%cols)+.5)*W/cols,yy=fy+Math.floor(i/cols)*62;add("f"+i,f.lab,x,yy,f.cause?"cause":"factor");edges.push([f.par,"f"+i]);if(f.agent){add("g"+i,f.agent.slice(0,24).toLowerCase(),x,yy+28,"agent");}});
+  const H=Math.max(fy+Math.ceil(nF/cols)*62+10, y+20);
+  const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const style={event:["var(--ink)","var(--paper)"],ac:["var(--panel)","var(--ink)"],occ:["var(--panel)","var(--ink)"],def:["var(--blue-soft)","var(--blue)"],cictt:["var(--blue-soft)","var(--blue)"],auth:["var(--accent-soft)","var(--accent-ink)"],cause:["var(--accent-soft)","var(--accent-ink)"],factor:["var(--panel)","var(--ink2)"],agent:["none","var(--muted)"]};
+  const e=edges.map(([a,b,l])=>{const A=byId[a],B=byId[b];if(!A||!B)return"";return `<line x1="${A.x}" y1="${A.y+12}" x2="${B.x}" y2="${B.y-12}" stroke="var(--rule)" stroke-width="1.5"/>`+(l?`<text x="${(A.x+B.x)/2+4}" y="${(A.y+B.y)/2}" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--muted)">${esc(l)}</text>`:"")}).join("");
+  const n=nodes.map(nd=>{const [bg,fg]=style[nd.kind];if(nd.kind==="agent")return `<text x="${nd.x}" y="${nd.y}" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="${fg}">${esc(nd.label)}</text>`;const w=Math.min(190,nd.label.length*6.6+18);return `<rect x="${nd.x-w/2}" y="${nd.y-12}" width="${w}" height="24" rx="5" fill="${bg}" stroke="var(--rule)"/><text x="${nd.x}" y="${nd.y+4}" text-anchor="middle" font-size="11.5" font-family="IBM Plex Sans, sans-serif" fill="${fg}">${esc(nd.label)}</text>`}).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="Knowledge graph of the selected event">${e}${n}</svg>`;
+}
+
+/* ---------- search ---------- */
+const SUGS=["truck on the runway in fog at night","landing gear maintenance failure","bird ingested in engine","windshear hard landing","turbine blade engine fire warning","pushback collision with parked airplane","cabin injuries in thunderstorm turbulence","AD 75-20-05"];
+$("#sugs").innerHTML=SUGS.map(s=>`<button class="sug" type="button">${esc(s)}</button>`).join("");
+$("#sugs").querySelectorAll(".sug").forEach(b=>b.onclick=()=>{$("#q").value=b.textContent;renderSearch()});
+["#q","#tExpand","#tGroup","#tDown"].forEach(s=>$(s).addEventListener(s==="#q"?"input":"change",()=>{renderSearch();if(curType==="late")renderLate()}));
+function ranks(scores){const order=scores.map((s,i)=>[i,s]).filter(x=>x[1]>1e-6).sort((a,b)=>b[1]-a[1]);const r={};order.forEach(([i],k)=>r[i]=k+1);return r}
+function renderSearch(){
+  const raw=$("#q").value;const ex=$("#tExpand").checked?expandQuery(raw):"";
+  $("#qExpanded").textContent=ex?`expanded with: ${ex}`:"no expansion applied";
+  const qt=tok(raw+" "+ex);
+  if(!qt.length){$("#results").innerHTML=`<tr><td class="muted">Type a query to search the 25 records.</td></tr>`;return}
+  const rb=ranks(BM_FULL.score(qt)),rf=ranks(BM_FIND.score(qt));const qe=embedQuery(qt);const rd=ranks(EMB.map(e=>Math.max(0,cos(qe,e))));
+  let fused=R.map((r,i)=>{let s=0;[rb,rd,rf].forEach(m=>{if(m[i])s+=1/(60+m[i])});if($("#tDown").checked&&route(r).evidence==="notification")s*=.7;return {i,s}}).filter(x=>x.s>0).sort((a,b)=>b.s-a.s);
+  if($("#tGroup").checked){const seen=new Map();fused=fused.filter(x=>{const ev=R[x.i].ev;if(seen.has(ev)){seen.get(ev).dup++;return false}x.dup=0;seen.set(ev,x);return true})}
+  const top=fused.slice(0,8),mx=top[0]?.s||1;
+  const f=v=>v?`#${v}`:"–";
+  $("#results").innerHTML=`<thead><tr><th>#</th><th>Record</th><th>What it says</th><th>BM25</th><th>Dense</th><th>Findings</th><th>Fused</th></tr></thead><tbody>${top.map((x,k)=>{const r=R[x.i],o=route(r);const snip=(r.occ?cleanLegacy(r.narr).plain:(r.narr||r.notice)).slice(0,150);return `<tr class="${x.i===cur?"sel":""}"><td class="num">${k+1}</td><td><div class="mono" style="font-size:13px">${esc(key(r))}</div><div class="badges" style="margin-top:4px"><span class="badge cls-${o.cls}">${CLSNAME[o.cls]}</span>${x.dup?`<span class="badge">+${x.dup} record</span>`:""}</div></td><td class="snip">${esc(snip)}…</td><td class="num">${f(rb[x.i])}</td><td class="num">${f(rd[x.i])}</td><td class="num">${f(rf[x.i])}</td><td><div class="fused"><i style="width:${Math.round(x.s/mx*70)}px"></i><span class="mono" style="font-size:12px">${x.s.toFixed(4)}</span></div></td></tr>`}).join("")}</tbody>`;
+}
+
+/* ---------- classification ---------- */
+function classify(r){
+  const i=R.indexOf(r),o=route(r);const rule=ruleMap(r);
+  const pool=R.map((x,j)=>j).filter(j=>route(R[j]).train&&R[j].ev!==r.ev&&R[j].ref.length);
+  const sims=pool.map(j=>[j,.6*Math.max(0,cos(EMB[i],EMB[j]))+.4*codeCos(i,j)]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const votes={};let tot=0;sims.forEach(([j,s])=>{R[j].ref.forEach(l=>{votes[l]=(votes[l]||0)+s/R[j].ref.length});tot+=s});
+  const dist=Object.entries(votes).map(([l,v])=>[l,tot?v/tot:0]).sort((a,b)=>b[1]-a[1]);
+  const set=dist.filter(([,p])=>p>=.25).map(([l])=>l);
+  let decision,reason,cls;
+  if(o.evidence==="notification"){decision="Provisional prediction";cls="prov";reason=`Notification: label ${rule.labels.length?"from the defining event ("+rule.labels.join(", ")+")":"predicted from neighbours"} is stored as provisional, excluded from training, and upgraded when ${r.auth}’s report is attached.`}
+  else if(rule.labels.length&&set.length===1&&rule.labels.includes(set[0])){decision="Auto-assign";cls="auto";reason=`Rule map and neighbours agree on ${set[0]}; assigned with provenance “rule+knn”.`}
+  else if(rule.labels.length&&set.some(l=>rule.labels.includes(l))){decision="SLM adjudicator";cls="adj";reason=`Rules give ${rule.labels.join(", ")} but the candidate set is {${set.join(", ")||"empty"}}; the adjudicator must cite evidence before assigning.`}
+  else {decision="SLM adjudicator → SME";cls="adj";reason=rule.labels.length?`Rules (${rule.labels.join(", ")}) and neighbours ({${set.join(", ")||"none"}}) disagree; goes to an SME review pack after adjudication.`:`No rule fires; neighbours suggest {${set.join(", ")||"none"}}. Adjudicate, then SME review; a new SME rule may be needed.`}
+  return {rule,sims,dist,set,decision,reason,cls};
+}
+function renderClassify(){
+  const r=R[cur],d=classify(r);
+  const chips=(ls,c)=>ls.length?ls.map(l=>`<span class="chip ${c||"cictt"}">${esc(l)}</span>`).join(""):`<span class="muted">none</span>`;
+  $("#steps").innerHTML=`
+  <div class="step"><span class="k">C1 · rule map</span><div class="chips">${chips(d.rule.labels)}</div><ul class="rules">${d.rule.why.map(w=>`<li><span class="tick y">›</span><span style="font-size:13px">${esc(w)}</span></li>`).join("")}</ul></div>
+  <div class="step"><span class="k">C2 · 5 nearest labelled</span>${d.sims.map(([j,s])=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span class="mono">${esc(key(R[j]))}</span><span class="mono muted">${s.toFixed(2)} · ${esc(R[j].ref.join("+"))}</span></div>`).join("")}<p class="note">Similarity = 0.6 dense + 0.4 code profile.</p></div>
+  <div class="step"><span class="k">Candidate set</span>${barRows(d.dist.slice(0,5).map(([l,p])=>[l,p]),1)}<div class="chips">${chips(d.set)}</div><p class="note">Labels with share ≥ 0.25 (illustrative, not calibrated).</p></div>
+  <div class="step decision ${d.cls}"><span class="k">Route</span><h3>${esc(d.decision)}</h3><p style="font-size:14px">${esc(d.reason)}</p><p class="note">Reference label: ${r.ref.length?esc(r.ref.join(" + ")):"not determinable from the record"} (author’s reading, pending SME review).</p></div>`;
+}
+
+/* ---------- bar + all ---------- */
+function renderBar(){const r=R[cur],o=route(r);$("#barBadges").innerHTML=`<span class="badge cls-${o.cls}">${CLSNAME[o.cls]}</span><span class="badge ${o.evidence==="investigation"?"good":"warn"}">${o.evidence}</span><span class="badge">${esc(r.date)}</span>`}
+function renderAll(){renderBar();renderStages();renderRoute();renderClean();renderTabs();renderType();renderSearch();renderClassify()}
+renderAll();
+</script>
+
+</body></html>
