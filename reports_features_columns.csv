@@ -1,0 +1,358 @@
+﻿column,group,side,filled
+dataset,report,evidence,11
+report_id,report,evidence,11
+source,report,evidence,11
+title,report,evidence,11
+event_date,report,evidence,11
+event_type,report,evidence,11
+operator,report,evidence,6
+registration,report,evidence,11
+aircraft_make,report,evidence,11
+aircraft_model,report,evidence,11
+location,report,evidence,11
+country,report,evidence,8
+far_part,report,evidence,10
+highest_injury,report,evidence,8
+damage,report,evidence,11
+wx_cond,report,evidence,7
+light_cond,report,evidence,6
+url,report,evidence,11
+model_input_text,model input text,evidence,11
+ntsb_probable_cause,NTSB conclusions,answer,6
+ntsb_defining_event,NTSB conclusions,answer,4
+ntsb_coded_sequence,NTSB conclusions,answer,6
+ntsb_findings,NTSB conclusions,answer,6
+meta_year,meta,evidence,11
+meta_month,meta,evidence,11
+meta_dow,meta,evidence,11
+meta_month_sin,meta,evidence,11
+meta_month_cos,meta,evidence,11
+meta_event_type,meta,evidence,11
+meta_inj_ord,meta,evidence,3
+meta_dmg_ord,meta,evidence,8
+meta_far_part,meta,evidence,10
+meta_commercial,meta,evidence,7
+meta_era,meta,evidence,11
+meta_post2008,meta,evidence,7
+meta_make,meta,evidence,11
+meta_family,meta,evidence,11
+meta_imc,meta,evidence,2
+meta_night,meta,evidence,2
+meta_country,meta,evidence,8
+meta_has_cause,meta,answer,6
+meta_n_findings,meta,answer,6
+meta_severity_score,meta,evidence,10
+txt_chars,txt,evidence,11
+txt_words,txt,evidence,11
+txt_sents,txt,evidence,11
+txt_flesch,txt,evidence,11
+txt_digits_ratio,txt,evidence,11
+txt_quote_count,txt,evidence,4
+txt_update_markers,txt,evidence,0
+txt_has_metar,txt,evidence,0
+txt_uncertainty_terms,txt,evidence,0
+occ_ARC,occ,evidence,1
+occ_ARC_neg,occ,evidence,0
+occ_ARC_unc,occ,evidence,0
+occ_RE,occ,evidence,0
+occ_RE_neg,occ,evidence,0
+occ_RE_unc,occ,evidence,0
+occ_SCF_NP,occ,evidence,0
+occ_SCF_NP_neg,occ,evidence,0
+occ_SCF_NP_unc,occ,evidence,0
+occ_SCF_PP,occ,evidence,1
+occ_SCF_PP_neg,occ,evidence,1
+occ_SCF_PP_unc,occ,evidence,0
+occ_LOC_I,occ,evidence,1
+occ_LOC_I_neg,occ,evidence,0
+occ_LOC_I_unc,occ,evidence,0
+occ_LOC_G,occ,evidence,0
+occ_LOC_G_neg,occ,evidence,0
+occ_LOC_G_unc,occ,evidence,0
+occ_CFIT,occ,evidence,0
+occ_CFIT_neg,occ,evidence,0
+occ_CFIT_unc,occ,evidence,0
+occ_MAC,occ,evidence,0
+occ_MAC_neg,occ,evidence,0
+occ_MAC_unc,occ,evidence,0
+occ_RI,occ,evidence,0
+occ_RI_neg,occ,evidence,0
+occ_RI_unc,occ,evidence,0
+occ_GCOL,occ,evidence,1
+occ_GCOL_neg,occ,evidence,0
+occ_GCOL_unc,occ,evidence,0
+occ_RAMP,occ,evidence,3
+occ_RAMP_neg,occ,evidence,0
+occ_RAMP_unc,occ,evidence,1
+occ_TURB,occ,evidence,2
+occ_TURB_neg,occ,evidence,0
+occ_TURB_unc,occ,evidence,0
+occ_WSTRW,occ,evidence,0
+occ_WSTRW_neg,occ,evidence,0
+occ_WSTRW_unc,occ,evidence,0
+occ_ICE,occ,evidence,2
+occ_ICE_neg,occ,evidence,0
+occ_ICE_unc,occ,evidence,0
+occ_BIRD,occ,evidence,0
+occ_BIRD_neg,occ,evidence,0
+occ_BIRD_unc,occ,evidence,0
+occ_F_NI,occ,evidence,0
+occ_F_NI_neg,occ,evidence,0
+occ_F_NI_unc,occ,evidence,0
+occ_FUEL,occ,evidence,1
+occ_FUEL_neg,occ,evidence,0
+occ_FUEL_unc,occ,evidence,0
+occ_CTOL,occ,evidence,0
+occ_CTOL_neg,occ,evidence,0
+occ_CTOL_unc,occ,evidence,0
+occ_USOS,occ,evidence,0
+occ_USOS_neg,occ,evidence,0
+occ_USOS_unc,occ,evidence,0
+occ_AMAN,occ,evidence,0
+occ_AMAN_neg,occ,evidence,0
+occ_AMAN_unc,occ,evidence,0
+occ_ADRM,occ,evidence,0
+occ_ADRM_neg,occ,evidence,0
+occ_ADRM_unc,occ,evidence,0
+occ_ATM,occ,evidence,0
+occ_ATM_neg,occ,evidence,0
+occ_ATM_unc,occ,evidence,0
+occ_TURB_WAKE,occ,evidence,0
+occ_TURB_WAKE_neg,occ,evidence,0
+occ_TURB_WAKE_unc,occ,evidence,0
+occ_SEC,occ,evidence,0
+occ_SEC_neg,occ,evidence,0
+occ_SEC_unc,occ,evidence,0
+occ_UAS,occ,evidence,0
+occ_UAS_neg,occ,evidence,0
+occ_UAS_unc,occ,evidence,0
+occ_MED,occ,evidence,0
+occ_MED_neg,occ,evidence,0
+occ_MED_unc,occ,evidence,0
+occ_EVAC,occ,evidence,0
+occ_EVAC_neg,occ,evidence,0
+occ_EVAC_unc,occ,evidence,0
+occ_n_categories,occ,evidence,6
+occ_top,occ,evidence,6
+ph_STANDING,ph,evidence,1
+ph_TAXI,ph,evidence,5
+ph_TAKEOFF,ph,evidence,3
+ph_INITIAL_CLIMB,ph,evidence,0
+ph_ENROUTE,ph,evidence,1
+ph_DESCENT,ph,evidence,2
+ph_APPROACH,ph,evidence,2
+ph_LANDING,ph,evidence,4
+ph_MANEUVERING,ph,evidence,0
+ph_first,ph,evidence,8
+ph_last,ph,evidence,8
+ph_n_distinct,ph,evidence,8
+ata_21_AIR_COND_PRESS,ata,evidence,1
+ata_21_AIR_COND_PRESS_neg,ata,evidence,0
+ata_21_AIR_COND_PRESS_unc,ata,evidence,0
+ata_22_AUTOFLIGHT,ata,evidence,0
+ata_22_AUTOFLIGHT_neg,ata,evidence,0
+ata_22_AUTOFLIGHT_unc,ata,evidence,0
+ata_23_COMMS,ata,evidence,0
+ata_23_COMMS_neg,ata,evidence,0
+ata_23_COMMS_unc,ata,evidence,0
+ata_24_ELECTRICAL,ata,evidence,0
+ata_24_ELECTRICAL_neg,ata,evidence,0
+ata_24_ELECTRICAL_unc,ata,evidence,0
+ata_26_FIRE_PROT,ata,evidence,0
+ata_26_FIRE_PROT_neg,ata,evidence,0
+ata_26_FIRE_PROT_unc,ata,evidence,0
+ata_27_FLIGHT_CTRL,ata,evidence,1
+ata_27_FLIGHT_CTRL_neg,ata,evidence,0
+ata_27_FLIGHT_CTRL_unc,ata,evidence,0
+ata_28_FUEL,ata,evidence,1
+ata_28_FUEL_neg,ata,evidence,0
+ata_28_FUEL_unc,ata,evidence,0
+ata_29_HYDRAULIC,ata,evidence,0
+ata_29_HYDRAULIC_neg,ata,evidence,0
+ata_29_HYDRAULIC_unc,ata,evidence,0
+ata_30_ICE_RAIN,ata,evidence,1
+ata_30_ICE_RAIN_neg,ata,evidence,0
+ata_30_ICE_RAIN_unc,ata,evidence,0
+ata_32_LANDING_GEAR,ata,evidence,3
+ata_32_LANDING_GEAR_neg,ata,evidence,0
+ata_32_LANDING_GEAR_unc,ata,evidence,0
+ata_34_NAVIGATION,ata,evidence,1
+ata_34_NAVIGATION_neg,ata,evidence,0
+ata_34_NAVIGATION_unc,ata,evidence,0
+ata_36_PNEUMATIC,ata,evidence,0
+ata_36_PNEUMATIC_neg,ata,evidence,0
+ata_36_PNEUMATIC_unc,ata,evidence,0
+ata_49_APU,ata,evidence,1
+ata_49_APU_neg,ata,evidence,0
+ata_49_APU_unc,ata,evidence,0
+ata_52_DOORS,ata,evidence,1
+ata_52_DOORS_neg,ata,evidence,0
+ata_52_DOORS_unc,ata,evidence,0
+ata_56_WINDOWS,ata,evidence,0
+ata_56_WINDOWS_neg,ata,evidence,0
+ata_56_WINDOWS_unc,ata,evidence,0
+ata_71_POWERPLANT,ata,evidence,1
+ata_71_POWERPLANT_neg,ata,evidence,1
+ata_71_POWERPLANT_unc,ata,evidence,0
+ata_72_ENGINE,ata,evidence,1
+ata_72_ENGINE_neg,ata,evidence,0
+ata_72_ENGINE_unc,ata,evidence,0
+ata_73_ENGINE_FUEL_CTRL,ata,evidence,0
+ata_73_ENGINE_FUEL_CTRL_neg,ata,evidence,0
+ata_73_ENGINE_FUEL_CTRL_unc,ata,evidence,0
+ata_78_EXHAUST_TR,ata,evidence,0
+ata_78_EXHAUST_TR_neg,ata,evidence,0
+ata_78_EXHAUST_TR_unc,ata,evidence,0
+ata_79_OIL,ata,evidence,0
+ata_79_OIL_neg,ata,evidence,0
+ata_79_OIL_unc,ata,evidence,0
+ata_n_systems,ata,evidence,6
+hf_skill_error,hf,evidence,0
+hf_skill_error_neg,hf,evidence,0
+hf_skill_error_unc,hf,evidence,0
+hf_decision_error,hf,evidence,0
+hf_decision_error_neg,hf,evidence,0
+hf_decision_error_unc,hf,evidence,0
+hf_perceptual_error,hf,evidence,0
+hf_perceptual_error_neg,hf,evidence,0
+hf_perceptual_error_unc,hf,evidence,0
+hf_violation,hf,evidence,0
+hf_violation_neg,hf,evidence,0
+hf_violation_unc,hf,evidence,0
+hf_crm_comm,hf,evidence,0
+hf_crm_comm_neg,hf,evidence,0
+hf_crm_comm_unc,hf,evidence,0
+hf_fatigue,hf,evidence,1
+hf_fatigue_neg,hf,evidence,0
+hf_fatigue_unc,hf,evidence,0
+hf_training,hf,evidence,0
+hf_training_neg,hf,evidence,0
+hf_training_unc,hf,evidence,0
+hf_procedures,hf,evidence,0
+hf_procedures_neg,hf,evidence,0
+hf_procedures_unc,hf,evidence,0
+hf_maintenance,hf,evidence,2
+hf_maintenance_neg,hf,evidence,0
+hf_maintenance_unc,hf,evidence,0
+hf_automation,hf,evidence,1
+hf_automation_neg,hf,evidence,0
+hf_automation_unc,hf,evidence,0
+hf_medical_impair,hf,evidence,0
+hf_medical_impair_neg,hf,evidence,0
+hf_medical_impair_unc,hf,evidence,0
+hf_organizational,hf,evidence,0
+hf_organizational_neg,hf,evidence,0
+hf_organizational_unc,hf,evidence,0
+hf_any,hf,evidence,3
+wx_low_visibility,wx,evidence,0
+wx_precipitation,wx,evidence,1
+wx_wind,wx,evidence,1
+wx_convective,wx,evidence,1
+wx_icing,wx,evidence,0
+wx_contaminated_rwy,wx,evidence,0
+wx_night,wx,evidence,2
+wx_wind_kt_max,wx,evidence,0
+wx_gust_kt_max,wx,evidence,0
+wx_vis_sm_min,wx,evidence,0
+wx_ceiling_ft_min,wx,evidence,0
+wx_metar_phenomena,wx,evidence,0
+out_diversion,out,evidence,0
+out_return,out,evidence,1
+out_rejected_takeoff,out,evidence,1
+out_go_around,out,evidence,0
+out_emergency_decl,out,evidence,0
+out_evacuation,out,evidence,0
+out_precautionary_landing,out,evidence,1
+out_fuel_dump,out,evidence,0
+out_grounded,out,evidence,0
+out_injury,out,evidence,4
+out_fatality,out,evidence,0
+out_hull_loss,out,evidence,0
+q_alt_ft_n,q,evidence,4
+q_alt_ft_max,q,evidence,4
+q_alt_ft_min,q,evidence,4
+q_speed_kt_n,q,evidence,4
+q_speed_kt_max,q,evidence,4
+q_speed_kt_min,q,evidence,4
+q_vs_fpm_max,q,evidence,0
+q_dist_nm_max,q,evidence,1
+q_g_max,q,evidence,0
+crew_total_hours_max,crew,evidence,0
+crew_total_hours_min,crew,evidence,0
+crew_type_hours_min,crew,evidence,0
+crew_age_max,crew,evidence,0
+pob_pax,pob,evidence,1
+n_injured_text,n,evidence,0
+n_killed_text,n,evidence,0
+delay_hours_max,delay,evidence,0
+ent_airports,ent,evidence,4
+ent_runways,ent,evidence,3
+ent_registrations,ent,evidence,6
+ent_flight_numbers,ent,evidence,4
+seq_len,seq,answer,6
+seq_first,seq,answer,6
+seq_defining,seq,answer,4
+seq_cictt_chain,seq,answer,6
+seq_defining_pos,seq,answer,1
+seq_findings_personnel,seq,answer,3
+seq_findings_aircraft,seq,answer,2
+seq_findings_environment,seq,answer,0
+seq_phase_chain,seq,answer,6
+seq_n_phase_transitions,seq,answer,1
+seq_pre_defining,seq,answer,1
+link_cluster,link,answer,11
+link_n_sources,link,answer,11
+lbl_cictt,lbl,answer,6
+lbl_source,lbl,answer,6
+lbl_cictt_all,lbl,answer,6
+lbl_linked,lbl,answer,6
+weak_label,weak labels,derived,6
+weak_conf,weak labels,derived,6
+vote_lf_lexicon_top,weak labels,derived,6
+vote_lf_title_keywords,weak labels,derived,3
+vote_lf_ata_to_cictt,weak labels,derived,0
+vote_lf_phase_runway,weak labels,derived,0
+vote_lf_fatal_loc,weak labels,derived,0
+vote_lf_cfit,weak labels,derived,0
+pdf_report_no,PDF fields,evidence,11
+pdf_report_kind,PDF fields,evidence,11
+pdf_source_file,PDF fields,evidence,11
+pdf_has_analysis,PDF fields,evidence,6
+pdf_has_factual_narrative,PDF fields,evidence,5
+pdf_narrative_words,PDF fields,evidence,8
+pdf_flight_conducted_under,PDF fields,evidence,11
+pdf_defining_event_header,PDF fields,evidence,4
+pdf_injuries_header,PDF fields,evidence,8
+pdf_pilot_age,PDF fields,evidence,5
+pdf_pilot_total_hours,PDF fields,evidence,5
+pdf_pilot_certificate,PDF fields,evidence,5
+pdf_year_of_manufacture,PDF fields,evidence,0
+pdf_airframe_total_hours,PDF fields,evidence,4
+pdf_engines,PDF fields,evidence,6
+pdf_engine_manufacturer,PDF fields,evidence,6
+pdf_engine_model,PDF fields,evidence,6
+pdf_max_gross_wt_lbs,PDF fields,evidence,5
+pdf_operating_certificate,PDF fields,evidence,8
+pdf_operator_code,PDF fields,evidence,7
+pdf_conditions,PDF fields,evidence,7
+pdf_light,PDF fields,evidence,6
+pdf_lowest_ceiling,PDF fields,evidence,3
+pdf_visibility,PDF fields,evidence,6
+pdf_wind,PDF fields,evidence,8
+pdf_wind_direction,PDF fields,evidence,5
+pdf_temp_dew,PDF fields,evidence,5
+pdf_precipitation,PDF fields,evidence,4
+pdf_departure,PDF fields,evidence,8
+pdf_destination,PDF fields,evidence,8
+pdf_flight_plan,PDF fields,evidence,8
+pdf_crew_injuries,PDF fields,evidence,8
+pdf_passenger_injuries,PDF fields,evidence,4
+pdf_ground_injuries,PDF fields,evidence,1
+pdf_aircraft_fire,PDF fields,evidence,0
+pdf_lat_lon,PDF fields,evidence,6
+pdf_investigation_class,PDF fields,evidence,11
+pdf_iic,PDF fields,evidence,11
+pdf_docket,PDF fields,evidence,8
+pdf_publish_date,PDF fields,evidence,8
+pdf_n_occurrences,PDF fields,evidence,6
+pdf_n_findings,PDF fields,evidence,6
