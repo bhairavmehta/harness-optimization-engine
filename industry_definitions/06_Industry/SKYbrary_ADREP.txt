@@ -1,0 +1,143 @@
+Source: https://skybrary.aero/articles/icao-adrep
+
+Skip to main content
+
+##
+
+##
+You are here
+
+Home
+»
+Portals
+»
+Enhancing Safety
+»
+ICAO ADREP
+
+# ICAO ADREP
+
+#
+ICAO ADREP
+
+Article Information
+
+Category:
+
+ICAO ADREP
+
+Content source:
+
+SKYbrary
+
+Content control:
+
+EUROCONTROL
+
+Cite This Page
+
+SKYbrary Aviation Safety. (July 3, 2026). ICAO ADREP.
+Retrieved November 19, 2026
+from https://skybrary.aero/articles/icao-adrep
+UID: 23512
+
+COPY
+
+Copied!
+
+How to cite a SKYbrary article
+
+## Description
+
+Annex 13 to the Chicago Convention — Aircraft Accident and Incident Investigation - contains Standards which require Contracting States to report to the International Civil Aviation Organisation (ICAO) information on all aircraft accidents which involve aircraft of a maximum certificated take-off mass of over 2 250 kg. The Organisation also gathers information on aircraft incidents considered important for safety and accident prevention.
+
+The Accident/Incident Data Reporting (ADREP) system is operated and maintained by ICAO. The ADREP system receives, stores and provides States with occurrence data that will assist them in validating safety. In this context, the term ‘occurrence’ includes both accidents and incidents. The system was established in 1976 but has evolved to meet changes in information technology and the aviation industry. The version of the ADREP system in current use is ADREP 2000.
+
+## System Operation
+
+When ADREP reports are received from States, the information is first checked and then stored in a computer. The stored reports constitute a data bank of world-wide occurrences to provide States with the following services:
+
+a) a bi-monthly summary of reports received, providing States with an up-to-date picture of significant occurrences on a world-wide basis, as well as with an opportunity to check their reports as processed by ICAO.
+
+b) annual ADREP statistics, presenting statistical information under broad categories such as the types of events which took place and the phases of operation in which they occurred; and
+
+c) replies to States’ requests for specific information in the form of an “ADREP Information Request”.
+
+The ICAO Accident/Incident Reporting Manual (ICAO Doc 9176) gives full details on how reports are complied and transmitted to ICAO. The basic means of reporting is a manual system using forms and formats described in Doc 9176. However, technological advances now mean that electronic means of reporting to ICAO are now available.
+
+## Software Platform
+
+The ADREP system operates using a software platform developed by the European Union (EU) - the European Co-ordination Centre for Aviation Incident Reporting System (ECCAIRS). This platform was adopted for ADREP use in 2004. The same software is also made available to States (free of charge) by the EU through ICAO to support the development of their own reporting systems, and to facilitate the electronic transfer of occurrence report information through software compatibility.
+
+In addition to the collection, storage and exchange of occurrence data, ADREP/ECCAIRS also provides users with the capability to exchange analysis tools. As a result, States establishing occurrence reporting systems in accordance with Standard 8.1 of Annex 13 can benefit from analysis tools developed elsewhere.
+
+As of January 2009, some 45 States and 7 international organizations have installed the ECCAIRS software and have reported occurrences in the ECCAIRS format to ICAO. This process has permitted ICAO to have more complete and up-to-date data, and it will continue to benefit the States as there will no longer be a need for them to complete the ICAO ADREP reporting forms manually. In addition, closer cooperation through electronic communications with data providers has improved the classification of occurrences.
+
+## Taxonomy
+
+The ADREP reporting system is based on the use of a common reporting taxonomy, which is periodically updated in cooperation with Contracting States. The current version of the taxonomy is available here.
+
+States are also urged to use this taxonomy in their national reporting to achieve international harmonisation and thereby enable the exchange and aggregation of occurrence information.
+
+Cooperation between ICAO and EUROCONTROL has ensured a taxonomy for the ATM sector harmonised between ICAO ADREP and ESARR 2 requirements.
+
+The following ICAO ADREP material is stored on SKYbrary bookshelf, for latest versions please refer to the ICAO ADREP 2000 website.
+
+ICAO ADREP 2000 Taxonomy, 17 September 2010
+
+The following ECCAIRS Data Definition Standards are used in conjuction with ICAO ADREP 2000 Taxonomy:
+
+ECCAIRS 4.2.8 - Aircraft type designators, 17 September 2010
+
+ECCAIRS 4.2.8 - Aircraft make/models, 17 September 2010
+
+ECCAIRS 4.2.8 - Aviation operations, 17 September 2010
+
+ECCAIRS 4.2.8 - Descriptive Factors, 17 September 2010
+
+ECCAIRS 4.2.8 - Event phases, 17 September 2010
+
+ECCAIRS 4.2.8 - Events, 17 September 2010
+
+ECCAIRS 4.2.8 - Explanatory Factors, 17 September 2010
+
+ECCAIRS 4.2.8 - Location Indicators by State, 17 September 2010
+
+ECCAIRS 4.2.8 - Modifiers, 17 September 2010
+
+ECCAIRS 4.2.8 - Occurrence classes, 17 September 2010
+
+## Further Reading
+
+Further general information on the ADREP system can be found by reference to the ICAO Website
+
+Chapter 1 of the ICAO Accident/Incident Reporting Manual (ICAO Doc 9156)
+
+European Co-ordination Centre for Aviation Incident Reporting Systems (ECCAIRS).
+
+Categories
+
+ICAO ADREP,
+Accident Investigation
+
+Feedback
+
+## SKYbrary Partners:
+
+## Safety knowledge contributed by:
+
+## Join SKYbrary
+
+If you wish to contribute or participate in the discussions about articles you are invited to join SKYbrary as a registered user
+
+## Contact us
+
+Message to the Editor
+
+## About SKYbrary
+
+What is SKYbrary
+
+Copyright © SKYbrary Aviation Safety, 2021-2026. All rights reserved.
+
+##

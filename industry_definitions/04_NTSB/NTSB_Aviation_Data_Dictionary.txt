@@ -1,0 +1,143 @@
+Source: https://www.ntsb.gov/Pages/AviationDownloadDataDictionary.aspx
+
+Investigations
+
+Investigation Process
+
+Investigation Reports
+
+Investigation Dockets
+
+Investigative Offices
+
+Safety Recommendations
+
+Safety Research
+
+Accident Data
+
+Statistical Reviews - Aviation
+
+Marine Safety Data Dashboard
+
+Safety Research Reports
+
+News & Events
+
+Events
+
+Newsroom
+
+Official Testimony
+
+Congressional and Regulatory Correspondence
+
+Advocacy
+
+Safety Alerts
+
+Safety Issues
+
+Advocacy Activities
+
+Family Assistance
+
+Survivors, Family, and Friends
+
+Response Community
+
+About Us
+
+History
+
+The Board
+
+Organization
+
+FOIA
+
+Legal
+
+Employment
+
+Procurement Information
+
+Budget & Performance Reports​
+
+# Aviation Data Dictionary
+
+Page Content
+
+| Column Name | Short Description | Meaning |
+
+| EventId | Unique Identification for Each Event | Each event is assigned a unique 14-character alphanumeric code in the database. This code, used in conjunction with other primary keys (if applicable), are used to reference all database records. All database queries using a relational database (e.g., MS Access) should link tables using the ev_id variable. |
+
+| InvestigationType | Type of Event | Refers to a regulatory definition of the event severity. The severity of a general aviation accident or incident is classified as the combination of the highest level of injury sustained by the personnel involved (that is, fatal, serious, minor, or none) and level of damage to the aircraft involved (that is, destroyed, substantial, minor, or none). The |
+
+| AccidentNumber | NTSB Number | Each accident/incident is assigned a unique case number by the NTSB. This number is used as a reference in all documents referring to the event. The first 3 characters are a letter abbreviation of the NTSB office that filed the report. The next 2 numbers represent the fiscal year in which the accident occurred. The next two letters indicate the investigation category (Major, Limited, etc) and mode (Aviation, Marine, etc). The next three digits indicate the chronological sequence in which the case was created within the given fiscal year. And a final letter (A, B, C, etc) may exist if the event involved multiple aircraft |
+
+| EventDate | Event Date | The date of the event. Dates are be entered in the format: MM/DD/YYYY |
+
+| Location | Event Location Nearest City | The city or place location closest to the site of the event. |
+
+| Country | Event Country | The country in which the event took place. |
+
+| Latitude | Event Location Latitude | Latitude and longitude are entered for the event site in degrees and decimal degrees. If the event occurred on an airport, the published coordinates for that airport can be entered. If the event was not on an airport, position coordinates may be obtained usingGlobal Positioning System equipment or nearest known reading. |
+
+| Longitude | Event Location Longitude | |
+
+| AirportCode | Event Location Nearest Airport ID | Airport code if the event took place within 3 miles of an airport, or the involved aircraft was taking off from, or on approach to, an airport. |
+
+| AirportName | Event Location Airport | Airport name if the event took place within 3 miles of an airport, or the involved aircraft was taking off from, or on approach to, an airport. |
+
+| InjurySeverity | Event Highest Injury | Indicate the highest level of injury among all injuries sustained as a result of the event. |
+
+| AircraftDamage | Damage | Indicate the severity of damage to the accident aircraft. For the purposes of this variable, aircraft damage categories are defined in 49 CFR 830.2. |
+
+| AircraftCategory | Aircraft Category | The category of the involved aircraft. In this case, the definition of aircraft category is the same as that used with respect to the certification, ratings, privileges, and limitations of airmen. Also note that there is some overlap of category and class in the available choices. |
+
+| RegistrationNumber | Aircraft Registration Number | The full registration (tail) number of the involved aircraft, including the International Civil Aviation Organization (ICAO) country prefix. Note: the prefix for US registered aircraft is "N." |
+
+| Make | Aircraft Manufacturer's Full Name | Name of the manufacturer of the involved aircraft. |
+
+| Model | Aircraft Model | The full alphanumeric aircraft model code, including any applicable series or derivative identifiers. For example, a 200 series Boeing 737 is entered as 737-200. |
+
+| AmateurBuilt | Aircraft is a homebuilt (Y/N). | |
+
+| NumberOfEngines | Number of Engines | The total number of engines on the accident aircraft. |
+
+| EngineType | Engine Type | Type of engine(s) on the involved aircraft. |
+
+| FARDescription | Federal Aviation Reg. Part | The applicable regulation part (14 CFR) or authority the aircraft was operating under at the time of the accident. |
+
+| Schedule | Indicates whether an air carrier operation was scheduled or not | If the accident aircraft was conducting air carrier operations under 14 CFR 121, 125, 129, or 135, indicate whether it was operating as a "scheduled or commuter" air carrier or as a "non-scheduled or air taxi" carrier. |
+
+| PurposeOfFlight | Type of Flying (Per_Bus / Primary) | If the accident aircraft was operating under 14 CFR part 91,103,133, or 137, this was the primary purpose of flight. |
+
+| AirCarrier | Operator Name& Operator Is Doing Business As | The full name of the operator of the accident aircraft. This typically refers to an organization or group (e.g., airline or corporation) rather than the pilot; contanated with the carrier, business, or code share name if the accident aircraft was operated by a business, air carrier, or as part of a code share agreement. |
+
+| TotalFatalInjuries | Injury Total Fatal | The total number of fatal injuries from an event. |
+
+| TotalSeriousInjuries | Injury Total Serious | The total number of serious injuries from an event. |
+
+| TotalMinorInjuries | Injury Total Minor | The total number of minor injuries from an event. |
+
+| TotalUninjured | Non-Injury Total | The total number of non-injuries from an event. |
+
+| WeatherCondition | Basic weather conditions | The basic weather conditions at the time of the event. |
+
+| BroadPhaseOfFlight | Phase of Flight | All occurrences include information about the phase of flight in which the occurrence took place. Phase of flight refers to the point in the aircraft operation profile in which the event occurred. |
+
+| ReportStatus | Latest Report Level | The furthest level to which a report has been completed |
+
+| PublicationDate | Publication data of the Latest Report Level | The date on which the previous column was published to the web. |
+
+​
+
+​​​​​​
+
+##
+
+​
+​
+​
